@@ -274,6 +274,10 @@ footer p{
   color: white
 }
 
+.fab:hover{
+  color: white;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .sociallogos .fab:hover {
 
@@ -291,6 +295,10 @@ footer p{
     .fab a:active{
       text-decoration: none;
       transform: translateY(-8px);
+      color: white;
+    }
+
+    .sociallogos .fab:hover{
       color: white;
     }
 }
