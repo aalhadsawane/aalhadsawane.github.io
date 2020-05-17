@@ -283,12 +283,12 @@ footer p{
   }
 }
 @media (hover:none) and (pointer: coarse){
-    .fab:hover{
+    .fab a:hover{
       text-decoration: none;
       color: white;
     }
 
-    .fab:active{
+    .fab a:active{
       text-decoration: none;
       transform: translateY(-8px);
       color: white;
