@@ -9,6 +9,10 @@ a:hover{
   text-decoration: none;
 }
 
+.fa-flag:hover{
+  color: white;
+}
+
 
 .jumbotron{
   height: 100px;
@@ -360,7 +364,7 @@ html{
 @media (hover: hover) and (pointer: fine) {
   #gotop:hover{
     background-color: white;
-    color: orange;
+    color: orange !important;
   }
 }
 
@@ -413,7 +417,7 @@ html{
 @media (hover: hover) and (min-width:700px){
   #gotoppc:hover{
     background-color: white;
-    color: orange;
+    color: orange !important;
   }
 
 }
@@ -431,4 +435,6 @@ html{
   margin-bottom: 10px;
   margin: 10px;
 }
+
+
 
