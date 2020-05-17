@@ -5,6 +5,10 @@
   
 }
 
+a:hover{
+  text-decoration: none;
+}
+
 
 .jumbotron{
   height: 100px;
@@ -49,6 +53,17 @@ body{
 .dropdown-item{
   color: black;
 }
+
+@media (hover: none) and (pointer: coarse) {
+  .dropdown-item:hover{
+    background-color: inherit;
+    color: inherit;
+  }
+  .nav-item:hover{
+    background-color: inherit;
+    color: inherit;
+  }
+}
 .lead{
   margin-top: 10px;
   margin-bottom: 45px;
@@ -82,30 +97,55 @@ body{
  }
 
  /*Cards for experience*/
- .card img{
+.card img{
    width: 100%;
    height:auto;
+   z-index:-1;
+   background-color: #bc318f;
    border-radius: 20px;
  }
- .card{
+.card{
    border-radius: 20px;
    margin-bottom: 20px;
    margin-top: 10px;
 
+   margin-right: none;
+   margin-left: none;
+
    background-color: orange;
    color: black;
+   z-index: 2;
+   
+   padding: 0;
  }
- .card:hover{
-   background-color: rgb(16, 6, 71);
-   color:orange;
-   transition: 0.5s;
- }
+ @media (hover: hover) and (pointer: fine) {
+
+  .card:hover{
+    background-color: rgb(16, 6, 71);
+    color:orange;
+    transition: 0.5s;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .card:hover{
+    background-color: inherit;
+    color: inherit;
+  }
+  
+}
+
  .card-text{
-   margin-left: 20px;
-   margin-top: 15px;
+   
+   margin-top: 5px;
+   margin: auto;
+   padding: 10px;
+   
  }
+ 
 
 
+ 
 
 
 /*Skill flexbox*/
@@ -207,11 +247,14 @@ footer p{
     margin-left: 10px;
 }
 
-.sociallogos .fab:hover {
 
-  transform: translateY(-8px);
-  transition:0.3s;
-  color: white;
+@media (hover: hover) and (pointer: fine) {
+  .sociallogos .fab:hover {
+
+    transform: translateY(-8px);
+    transition:0.3s;
+    color: white;
+  }
 }
 
 .fab a:hover{
@@ -293,14 +336,16 @@ html{
  
 }
 
-#gotop:hover{
-  background-color: white;
-  color: orange;
+@media (hover: hover) and (pointer: fine) {
+  #gotop:hover{
+    background-color: white;
+    color: orange;
+  }
 }
 
 #gotop:active{
-  background-color: orange;
-  color: white;
+  background-color: white;
+  color: orange;
   transform: translateY(-4px);
 }
 
@@ -331,11 +376,8 @@ html{
       
   }
 
-  #gotoppc:hover{
-    background-color: white;
-    color: orange;
-  }
-
+  
+  
   #gotop:active{
     background-color: orange;
     color: white;
@@ -345,5 +387,27 @@ html{
     display:none;
   }
   
+}
+
+@media (hover: hover) and (min-width:700px){
+  #gotoppc:hover{
+    background-color: white;
+    color: orange;
+  }
 
 }
+
+.flexrow{
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.card{
+  flex: 1;
+  flex-basis: 40%;
+  padding: 10px;
+  margin-bottom: 10px;
+  margin: 10px;
+}
+

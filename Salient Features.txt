@@ -5,38 +5,40 @@ I've came across many features and added the ones that suit my design.
 Here are the salient features-
 
 
--Added a |jumbotron| in the header section
+-Added a |JUMBOTRON| in the header section
 
--Added a |sticky top navbar| which scrolls past until we reach the bottom of the Jumbotron and 
+-Added a |STICKY TOP NAVBAR| which scrolls past until we reach the bottom of the Jumbotron and 
  then becomes fixed to the top.
 
--The sticky top navbar is |responsive|. A |hamburger icon| takes place of the contents of navbar
- when the width is |less than 600 pixels|.
+-The sticky top navbar is |RESPONSIVE|. A |HAMBURGER ICON| takes place of the contents of navbar
+ when the width is |LESS THAN 600 PIXELS|. Here I learned about media queries.
 
--The navbar contains |dropdowns ,links and an image(my initials)|. Here I learned about 
- |data-targets and other data and aria attributes|.
+-The navbar contains |DROPDOWNS ,LINKS AND AN IMAGE(MY INITIALS)|. Here I learned about 
+ |DATA-TARGETS AND OTHER DATA AND ARIA ATTRIBUTES|.
 
--The dropdown has |block links, headers and seperators|.
+-The dropdown has |BLOCK LINKS, HEADERS AND SEPERATORS|.
 
--Added |gradient in hr|.
+-Added |GRADIENT IN HR TAG|.
 
--Added |responsive cards with stretched links| for describing my work experience. These 
- cards run on the |bootstrap grid system.|
+-Added |RESPONSIVE CARDS WITH STRETCHED LINKS| for describing my work experience. These 
+ cards run on the |BOOTSTRAP GRID SYSTEM| AND a |FLEX DISPLAY|.
 
--Added a |flexbox| in "Skills" division for better and bug-free layout.
+-Added |FLEXBOXES| in "Skills" and "Experience" divisions for BETTER AND BUG-FREE LAYOUT.
 
--Added a |carousal| for showing my top projects. Explored various |carousal data attributes|
+-Added a |CAROUSAL| for showing my top projects. Explored various |CAROUSAL DATA ATTRIBUTES|
  to configure the carousal accordingly.
 
--Added a |footer with copyright notice and social media font-awesome-icons|. I've added hover
- effects in it. Here I learned |attributes like transorm and translate|.
+-Added a |FOOTER WITH COPYRIGHT NOTICE AND SOCIAL MEDIA FONT-AWESOME-ICONS|. I've added hover
+ effects in it. Here I learned |ATTRIBUTES LIKE TRANSORM AND TRANSLATE|.
 
--Added a |responsive back to top button|. The button remains in the social media logo row when
+-Added a |RESPONSIVE BACK TO TOP BUTTON|. The button remains in the social media logo row when
  the screen width is greater than 700 pixels and becomes a fixed button (position: fixed) when
- the width is more than 700 pixels. Here I learned using |media queries|.
+ the width is more than 700 pixels. Here I learned using |MEDIA QUERIES|.
 
--Learned about |transitions, animations and keyframes|.
+-Learned about |TRANSITIONS, ANIMATIONS AND KEYFRAMES|.
 
--Made several |designs and colour schemes| in hard notebooks and finally chose one for my website.
+-Made several |DESIGNS AND COLOUR SCHEMES| in hard notebooks and finally chose one for my website.
 
--Added several |hover effects| and other effect on "a" tag's active, visited and other components.
+-Added several |HOVER EFFECTS| and other effect on "a" tag's active, visited and other components.
+
+-Made sure the hover effects were not added to touch screen devices.(used @media(hover:none) and (pointer:coarse))
