@@ -248,15 +248,6 @@ footer p{
 }
 
 
-@media (hover: hover) and (pointer: fine) {
-  .sociallogos .fab:hover {
-
-    transform: translateY(-8px);
-    transition:0.3s;
-    color: white;
-  }
-}
-
 .fab a:hover{
   color: inherit;
 }
@@ -282,6 +273,28 @@ footer p{
   background: #25D366;
   color: white
 }
+
+@media (hover: hover) and (pointer: fine) {
+  .sociallogos .fab:hover {
+
+    transform: translateY(-8px);
+    transition:0.3s;
+    color: white;
+  }
+}
+@media (hover:none) and (pointer: coarse){
+    .fab:hover{
+      text-decoration: none;
+      color: white;
+    }
+
+    .fab:active{
+      text-decoration: none;
+      transform: translateY(-8px);
+      color: white;
+    }
+}
+
 
 .dropdown-divider{
 
