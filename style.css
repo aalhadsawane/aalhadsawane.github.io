@@ -296,6 +296,12 @@ footer p{
       color: white;
     }
 
+    .fab:active{
+      transform: translateY(-8px);
+      transition:0.3s;
+      color: white;
+    }
+
     .fab a:active{
       text-decoration: none;
       transform: translateY(-8px);
