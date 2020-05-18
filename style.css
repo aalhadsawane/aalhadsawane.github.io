@@ -312,7 +312,7 @@ footer p{
       color: white;
     }
 
-    #sociallogo{
+    #sociallogo:hover{
       transform: translateY(-8px);
     }
 }
