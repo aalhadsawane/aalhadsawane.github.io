@@ -311,6 +311,12 @@ footer p{
     .sociallogos .fab:hover{
       color: white;
     }
+
+    .fa:active{
+      transform: translateY(-8px);
+      transition:0.3s;
+      color: white;
+    }
 }
 
 
