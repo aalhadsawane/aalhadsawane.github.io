@@ -312,11 +312,12 @@ footer p{
       color: white;
     }
 
-    #sociallogo:active{
-      transform: translateY(-8px);
-    }
+   
 }
 
+#sociallogo:active{
+  transform: translateY(-8px);
+}
 
 .dropdown-divider{
 
