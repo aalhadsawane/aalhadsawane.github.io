@@ -37,6 +37,13 @@ body{
   
 }
 
+.navbar {
+  padding: 0.8rem;
+}
+.navbar-nav li {
+  padding-right: 20px;
+}
+
 /*dropdown*/
 .dropdown-menu {
   
