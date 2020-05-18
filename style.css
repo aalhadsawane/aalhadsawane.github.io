@@ -312,10 +312,8 @@ footer p{
       color: white;
     }
 
-    .fa:active{
+    #sociallogo{
       transform: translateY(-8px);
-      transition:0.3s;
-      color: white;
     }
 }
 
