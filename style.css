@@ -417,7 +417,7 @@ html{
   #gotop:active{
     background-color: orange;
     color: white;
-    transform: translateY(-4px);
+    transform: translateY(-6px);
   }
   #gotop{
     display:none;
@@ -445,6 +445,10 @@ html{
   padding: 10px;
   margin-bottom: 10px;
   margin: 10px;
+}
+
+#gotoppc:active{
+  transform: translateY(-8px);
 }
 
 
