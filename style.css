@@ -30,15 +30,24 @@ body{
   color: rgb(255, 0, 98);
   font-family: 'Poppins', sans-serif;
   
-
 }
+
+
+nav{
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 300;
+  font-size: large;
+}
+
+
 .navbar-toggler:focus{
   outline: none;
   
 }
 
 .navbar {
-  padding: 0.8rem;
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
 }
 .navbar-nav li {
   padding-right: 20px;
@@ -457,6 +466,21 @@ html{
 #gotoppc:active{
   transform: translateY(-8px);
 }
+
+@media (max-width:700px){
+    .navbar {
+      padding-top: 0.4rem;
+      padding-bottom: 0.4rem;
+      padding-left: 0.8rem;
+    }
+
+    .navbar-brand img{
+      margin-right: 0.2rem;
+    }
+}
+
+
+
 
 
 
