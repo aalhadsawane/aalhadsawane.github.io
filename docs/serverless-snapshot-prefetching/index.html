@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Serverless Snapshot Prefetching: From First Principles to the Frontier · Aalhad Sawane</title>
+<meta name="description" content="Function as a Service: The dominant serverless computing paradigm makes users upload their code as a stateless function. The FaaS provider (ex AWS Lambda, Azure Functions) provisions an isolated ex…">
+<meta property="og:description" content="Function as a Service: The dominant serverless computing paradigm makes users upload their code as a stateless function. The FaaS provider (ex AWS Lambda, Azure Functions) provisions an isolated ex…">
+<meta property="og:title" content="Serverless Snapshot Prefetching: From First Principles to the Frontier · Aalhad Sawane">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/hljs.css">
+<link rel="stylesheet" href="../assets/user.css">
+<link rel="stylesheet" href="../assets/site.css">
+
+</head>
+<body>
+<div class="markdown-preview-view markdown-rendered">
+<div class="markdown-preview-sizer">
+<header class="site-header"><a href="../">Aalhad Sawane</a></header>
+<p class="post-meta">13 Oct 2026 · <a href="slides.html">view as slides</a></p>
+<article>
+<h1 id="serverless-snapshot-prefetching-from-first-principles-to-the-frontier">Serverless Snapshot Prefetching: From First Principles to the Frontier</h1>
+<blockquote>
+<p>Aalhad Sawane, Oct 2026</p>
+</blockquote>
+<hr>
+<h3 id="what-is-serverless">What is serverless?</h3>
+<p><mark>Function as a Service</mark>: The dominant serverless computing paradigm makes users upload their code as a stateless function. The FaaS provider (ex AWS Lambda, Azure Functions) provisions an isolated execution environment for each function and scales these environments with demand.</p>
+<p>Each such execution environment can handle multiple invocations of its function, but atmost one at any given time.</p>
+<hr>
+<p><span class="internal-embed image-embed" alt="wide"><img src="paper-review-snapbpf-3-excalidraw.svg" alt="wide" loading="lazy"></span></p>
+<p>(This serial execution of invocations in its execution environment is the default in most FaaS offerings like AWS Lambda, although other offerings exist: Google Cloud Run offers concurrency of requests on the same execution environment. This blog assumes serial execution throughout.)</p>
+<hr>
+<p><strong>One of the leading challenges that must be tackled in serverless computing:</strong></p>
+<p><mark>Cold start</mark>: The latency incurred when a function invocation requires a new execution environment to be created and initialized before execution.</p>
+<hr>
+<p>Different levels of isolation for the sandbox: process based, container based and VM based.<br>
+Each level has different ways to tackle cold starts:</p>
+<ol>
+<li>Process based: forking zygotes and CoW</li>
+<li>Container based: lazy loading layers and distroless images</li>
+<li>VM based: Snapshot restore</li>
+</ol>
+<hr>
+<p>Industry uses VM-based isolation. Key components of this system:</p>
+<ol>
+<li><code>KVM</code>: The Linux kernel’s hypervisor component that runs guest vCPUs, handles EPT memory translation, and manages guest execution</li>
+<li><code>VMM</code>: Virtual Machine Monitor: The userspace component that manages a VM, allocates and <code>mmap</code>s its RAM, runs one host thread to execute a vCPU, and emulates its devices.</li>
+<li><code>virtio</code>: a standard for <em>paravirtual</em> devices that accelerates communication between the guest device and hypervisor. The guest driver and host device exchange buffers through virtqueues in shared memory and notify each other through a transport (PCIe emulation or MMIO).</li>
+</ol>
+<p><em>note</em>: Firecracker and leading VMMs ditch PCIe completely since several PCIe buses in topology of emulated hardware means lots of enumeration which adds complexity to VMM's device state. A whole bunch of other reasons, worth a full-blown primer paper.</p>
+<hr>
+<ol start="4">
+<li>
+<p><code>EPT</code>: Extended page table, maps guest physical to host physical.</p>
+</li>
+<li>
+<p><code>VM exit / VM entry</code>: the CPU switching from the guest into KVM (exit) and back (entry).</p>
+</li>
+<li>
+<p><code>ioctl</code>: A standard system call to send control commands and configuration parameters to kernel drivers through a file descriptor.</p>
+</li>
+<li>
+<p><code>virtqueue</code>: a ring buffer in guest RAM that both the guest driver and the VMM read and write. The guest places requests on it, the VMM completes them and places replies back.</p>
+</li>
+<li>
+<p><code>EPT fault</code>: the CPU exception raised when the guest accesses a guest physical address that the EPT (extended page tables) cannot translate. It causes a VM exit into KVM. There are two common causes:</p>
+<ol>
+<li><strong>Unmapped RAM page:</strong> the page has no EPT entry yet. KVM maps it and resumes the guest.</li>
+<li><strong>Device register (e.g. virtio’s <code>QueueNotify</code>):</strong> the address has no RAM behind it, so every access faults. Virtio uses this deliberately as a doorbell. The guest first queues many requests in the <code>virtqueue</code> using plain memory writes, which cause no exit. It then writes once to <code>QueueNotify</code>, which causes one EPT fault and tells the VMM to process the whole batch.</li>
+</ol>
+</li>
+</ol>
+<hr>
+<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-1-excalidraw.svg" alt="" width="650" loading="lazy"></span></p>
+<hr>
+<h3 id="booting-up">Booting up</h3>
+<p>Throwback to OS 101, <strong>traditional boot up</strong> process:<br>
+<span class="internal-embed image-embed" alt="wide"><img src="paper-review-snapbpf-excalidraw.svg" alt="wide" loading="lazy"></span></p>
+<hr>
+<p><strong>Why the traditional boot exists</strong></p>
+<ul>
+<li>Discover unknown hardware (POST)</li>
+<li>Find the OS on disk (bootloader)</li>
+<li>Decompress and load the kernel</li>
+</ul>
+<hr>
+<p><strong>Why a microVM doesn’t need it</strong></p>
+<ul>
+<li>Hardware is emulated by the VMM</li>
+<li>The device list is known upfront, so there is nothing to discover</li>
+<li>The VMM writes the kernel straight into guest memory, so there is nothing to find</li>
+</ul>
+<hr>
+<p><strong>Skipped entirely</strong></p>
+<ul>
+<li>BIOS / UEFI</li>
+<li>POST</li>
+<li>Bootloader</li>
+<li>Kernel decompression</li>
+</ul>
+<p>This booting of microVMs directly from kernel image and root FS is called <strong>Direct Kernel Boot</strong> which is <em>sub-second</em> compared to traditional multisecond boots.</p>
+<hr>
+<h4 id="microvm-direct-kernel-boot">microVM Direct Kernel Boot</h4>
+<p><strong>Before the guest runs (VMM)</strong></p>
+<ul>
+<li>Load uncompressed kernel (<code>vmlinux</code>) into guest memory</li>
+<li>Pass device MMIO addresses to the kernel</li>
+<li>Set vCPU registers to the kernel entry point</li>
+<li>Start the vCPU</li>
+</ul>
+<hr>
+<p><span class="internal-embed image-embed" alt="wide"><img src="paper-review-snapbpf-2-excalidraw.svg" alt="wide" loading="lazy"></span></p>
+<hr>
+<p><strong>After the guest runs</strong></p>
+<ul>
+<li>When KVM detects an EPT fault in an MMIO zone, it checks if the address matches a <code>ioeventfd</code> region. If yes, KVM signals the associated <code>eventfd</code>. (VMM's io thread is alerted)</li>
+</ul>
+<p><strong>Kernel init</strong></p>
+<ul>
+<li>Probes only the devices it was told about</li>
+<li>Mounts the root filesystem</li>
+<li>Starts PID 1</li>
+</ul>
+<p><strong>Userspace init</strong></p>
+<ul>
+<li>Runs as PID 1</li>
+<li>Starts services and the application</li>
+</ul>
+<hr>
+<p><strong>Restore is different</strong></p>
+<ul>
+<li>A snapshot restore skips kernel init, so the guest resumes with kernel and userspace already running</li>
+</ul>
+<hr>
+<h3 id="a-step-further-why-stop-at-kernel-image">A step further: why stop at kernel image?</h3>
+<p><mark>Snapshot Restore</mark>: Can we take a snapshot after kernel and userspace is initialised and running already?</p>
+<p>This way we can <em>skip past</em> the delay caused by kernel init and userspace init.</p>
+<hr>
+<h4 id="what-a-snapshot-holds">What a snapshot holds</h4>
+<ul>
+<li>Taken after kernel init, userspace init, and runtime warm-up</li>
+<li>Two artifacts:
+<ul>
+<li><strong>State file:</strong> vCPU registers, device state (small)</li>
+<li><strong>Memory file:</strong> full guest RAM (large)</li>
+</ul>
+</li>
+<li>Restore resumes the guest at the exact instruction it stopped at.</li>
+</ul>
+<hr>
+<ul>
+<li>The VMM <code>mmap</code>s the memory file privately instead of copying it</li>
+<li>The guest runs immediately with nothing loaded (thus, no cold boot)</li>
+<li>Page not resident → fault → access from file (demand paging*)</li>
+<li>Fault path:
+<ol>
+<li>Guest first touches a page</li>
+<li>EPT violation → KVM — a heavy VM-exit occurs</li>
+<li>Host page fault on the mapped file</li>
+<li>File read</li>
+<li>Guest resumes</li>
+</ol>
+</li>
+</ul>
+<p>Cold boot solved but latency added, can we fix this? (hint: Prefetching?)</p>
+<p>*demand paging with <code>MAP_PRIVATE</code>: reads use file-backed pages but writes trigger CoW, creating a new private anonymous page with contents initialized with the file-backed page's contents. The snapshot file remains unaltered.</p>
+<hr>
+<h3 id="the-new-bottleneck">The new bottleneck</h3>
+<ul>
+<li>One <strong>invocation</strong> touches only a subset of pages (the <strong>working set</strong>)<br>
+<br>
+<ul>
+<li>Remember that one microVM can handle multiple invocations of a function. (although atmost one at any given time)<br>
+<br></li>
+</ul>
+</li>
+<li>Each miss means one fault, one VM exit and one small read</li>
+<li>Faults are many and scattered, so sequential readahead (prefetching based on spatial locality) helps only a little</li>
+<li>Fix: know the working set and prefetch it before the guest asks</li>
+</ul>
+<hr>
+<h3 id="where-do-snapshots-live">Where do snapshots live?</h3>
+<p>Snapshot restore so far assumed the memory file is sitting on the host. Scale that to serverless:</p>
+<ul>
+<li>A provider hosts <strong>thousands of functions</strong>, each with its own snapshot (regenerated on new versions)</li>
+<li>Each memory file is as large as the guest's RAM</li>
+<li>A worker node cannot hold them all, so snapshots live in <strong>remote, shared storage</strong> like S3 for Lambda; workers keep at most a cache on local disk.</li>
+</ul>
+<hr>
+<p>Now the problem: <code>mmap</code> maps a <strong>file</strong> into the address space, and the kernel's fault path reads pages from that file. A snapshot sitting in remote storage is not such a file.</p>
+<p>Two ways out:</p>
+<ol>
+<li>Handle the page fault <strong>ourselves, in userspace</strong> → <code>userfaultfd</code></li>
+<li>Get the snapshot onto the host as a <strong>file</strong>, and let the kernel and its page cache do the work → <code>mmap</code> + <code>mincore</code></li>
+</ol>
+<hr>
+<h3 id="userfaultfd">userfaultfd</h3>
+<p>The <code>userfaultfd</code> syscall in Linux lets a user-space program handle virtual memory page faults on its own instead of relying solely on the kernel.</p>
+<p>for our problem this reduces to: <code>mmap</code> for pages that are not in a file on disk.</p>
+<ul>
+<li>Added to Linux in 2015 (v4.3)</li>
+<li>Built for <strong>postcopy live migration</strong>: resume the VM on the new host first, pull its pages over the network as it touches them. Same problem as ours.</li>
+<li>Register a memory region → faults on it go to a <strong>userspace handler</strong> <code>uffdh</code>, <em>not</em> the kernel's file-backed path</li>
+<li>Thus, the custom userspace handler can fetch the page from anywhere: local disk, remote store, another machine</li>
+<li><code>uffdh</code> is a seperate process (not part of the VMM)</li>
+</ul>
+<hr>
+<p><em>Overhead</em>: <code>uffdh</code> only manages the contents of a page, the actual page allocation and copying of the contents is still made by kernel.</p>
+<p>This means using <code>userfaultfd</code> leads to heavy <strong>context switching</strong>. (first from kernelspace to userspace for fault handling then userspace to kernelspace for actual allocation)</p>
+<hr>
+<p><strong>Fault path</strong></p>
+<ol>
+<li>Guest first touches a page.</li>
+<li>EPT violation → KVM → host page fault.</li>
+<li>The kernel detects the <code>userfaultfd</code>-registered region and notifies the userspace handler <code>uffdh</code>.</li>
+<li>The handler fetches the page contents from snapshot storage.</li>
+<li><code>uffdh</code> calls <code>ioctl(UFFDIO_COPY)</code> which transitions to kernelspace where kernel copies the contents, and updates the page tables.</li>
+<li>Guest resumes.</li>
+</ol>
+<hr>
+<p><span class="internal-embed image-embed" alt="wide"><img src="paper-review-snapbpf-4-excalidraw.svg" alt="wide" loading="lazy"></span></p>
+<p>Still demand paging: one fault per page. So we prefetch.</p>
+<hr>
+<h3 id="host-page-cache">Host Page Cache</h3>
+<ul>
+<li>The page cache holds <strong>file-backed pages</strong> (plus swap-cache pages for anonymous memory being swapped)</li>
+<li>Anonymous memory is <strong>not</strong> in the page cache</li>
+<li>A snapshot’s memory file is a regular file, so even with <code>userfaultfd</code> its contents are treated as <strong>file-backed pages</strong>. Thus it's pages would go in host page cache in a naive setup. Serverless has different requirements.</li>
+</ul>
+<hr>
+<h4 id="prefetching-with-userfaultfd-reap-faast-in-2-phases">Prefetching with userfaultfd (REAP, Faast) in 2 phases</h4>
+<p><strong>Record phase</strong> (first invocation)</p>
+<ul>
+<li><code>uffdh</code> serves <em>every</em> fault, so it sees every page the invocation touches</li>
+<li>It writes those pages' <strong>contents</strong> into a compact <strong>working set file</strong></li>
+</ul>
+<hr>
+<p><strong>Invocation phase</strong> (later restores)</p>
+<ul>
+<li>The handler reads the working set file in one go and installs all its pages <strong>before</strong> the guest asks</li>
+<li>It reads with <strong>direct IO</strong>, skipping the page cache: the data ends up in private anonymous memory anyway, so caching it would only double-buffer</li>
+<li>Pages outside the working set still fault lazily</li>
+</ul>
+<p><em>Why direct I/O?</em> Serverless involves countless ephemeral functions, using page cache for all snapshots would pollute cache and lead to heavy thrashing</p>
+<hr>
+<p><strong>Cost</strong></p>
+<ul>
+<li>A second copy of the working set, stored per function</li>
+<li>Every snapshot page is copied through <code>uffdh</code>'s userspace buffer into guest RAM.</li>
+<li>Anonymous memory is private to each VM: 10 VMs of one function = 10 copies. <strong>No sharing.</strong></li>
+<li>Remember that since we are using <code>O_DIRECT</code>, we bypass the host page cache, preventing cached snapshot pages from being reused across VMs.</li>
+</ul>
+<hr>
+<p>gap: I could not find a quantitative study evaluating the tradeoff of time saved by sharing vs time lost in page cache thrashing if we were to use <code>O_DIRECT</code> when choosing to use or not use <code>O_DIRECT</code> in serverless workloads</p>
+<hr>
+<h3 id="what-is-mincore">What is mincore?</h3>
+<p><mark>mincore</mark>: <em>syscall answering which pages of this mapping are in RAM right now?</em></p>
+<ul>
+<li><strong>Input:</strong> a range of the process's virtual memory</li>
+<li><strong>Output:</strong> a byte array, one byte per page; lowest bit set = resident</li>
+<li>For a file mapping, resident = <strong>in the page cache</strong></li>
+</ul>
+<hr>
+<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-5-excalidraw.svg" alt="" loading="lazy"></span></p>
+<hr>
+<p>It is a snapshot taken <em>after</em> the fact:</p>
+<ul>
+<li>No ordering: it says nothing about <em>when</em> a page arrived
+<ul>
+<li>Can't distinguish recency of pages</li>
+</ul>
+</li>
+<li>No cause: a page could be there because the guest touched it, or because the kernel's readahead pulled it in
+<ul>
+<li>Can't distinguish demand from readahead prefetch</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="mmap-mincore-faasnap">mmap + mincore (FaaSnap)</h3>
+<p>Idea: don't intercept faults. The kernel's <strong>page cache</strong> already loads snapshot pages on demand, so use it to record and to prefetch.</p>
+<h4 id="record-ask-the-page-cache-what-got-loaded">Record: ask the page cache what got loaded</h4>
+<ul>
+<li><code>mmap</code> the snapshot and run one invocation</li>
+<li>Every page the guest touched got faulted into the page cache</li>
+<li>Call <strong>mincore</strong> over the mapping: the cached pages are the working set</li>
+<li>Copy them, back to back, into <strong>one working set file</strong></li>
+</ul>
+<p>Why copy at all? In the snapshot, these pages are scattered across gigabytes, so reading them means many small random reads. Packed into one file, they take a few large sequential reads.</p>
+<hr>
+<h4 id="prefetch-one-catch-with-the-page-cache">Prefetch: one catch with the page cache</h4>
+<p>The page cache is indexed by <strong>(file, page within that file)</strong>.</p>
+<ul>
+<li>A background thread reads the working set file → the cache now holds <em>(WS file, pg 2)</em></li>
+<li>But the guest's memory is a mapping of the <em>snapshot</em>, so its fault looks up <em>(snapshot, pg 3)</em> → <strong>miss</strong></li>
+<li>The same bytes are cached under a different name</li>
+</ul>
+<hr>
+<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-6-excalidraw.svg" alt="" loading="lazy"></span></p>
+<hr>
+<p><strong>Fix: remap.</strong> Map the working set file over the snapshot mapping, at the guest addresses its pages came from. A fault on guest pg 3 now looks up <em>(WS file, pg 2)</em> → <strong>hit</strong>, no disk read.</p>
+<p><strong>Win:</strong> the page cache is shared, so sandbox 2 of the same function hits the same cached pages. That means one copy in memory, not one per sandbox.</p>
+<hr>
+<h3 id="the-cost-of-remapping">The cost of remapping</h3>
+<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-7-excalidraw.svg" alt="" loading="lazy"></span></p>
+<hr>
+<ul>
+<li>In the snapshot, working-set pages are <strong>scattered</strong>. In the working set file, they are <strong>packed</strong>.</li>
+<li>One <code>mmap</code> maps one contiguous range to one contiguous range</li>
+<li>So every run of working-set pages needs its <strong>own mmap</strong> → thousands of them (since contiguous ranges are rare, as most WS is scattered)</li>
+<li>FaaSnap's fix is to merge runs separated by small gaps</li>
+<li>But then the gap pages get <strong>copied into the file</strong> and read on every restore, even though no invocation touched them</li>
+<li>So the trade-off is fewer mmaps vs. a bigger file and wasted IO</li>
+</ul>
+<hr>
+<h3 id="where-both-fall-short">Where both fall short</h3>
+<ul>
+<li><strong>Two copies on disk:</strong> the snapshot, plus a working set file that copies some of its pages</li>
+<li><strong>Recording in userspace:</strong> uffdh sees faults one at a time, and mincore only sees the end result</li>
+</ul>
+<p>Better: record just <em>which pages</em> of the snapshot were loaded, as a list of page numbers. On restore, load exactly those pages <strong>from the snapshot file itself</strong> into the page cache.</p>
+<p>No second file, no mmap juggling, and the page cache is still shared.</p>
+<p>That needs a hook inside the kernel, at the point where pages enter the page cache. (hint: eBPF)</p>
+<hr>
+<h3 id="what-is-ebpf">What is eBPF?</h3>
+<p>extended Berkeley Packet Filter</p>
+<p><mark>eBPF</mark>: small sandboxed programs you load into a <strong>running</strong> kernel, safely.</p>
+<ul>
+<li><strong>Verifier:</strong> checks every program before it runs
+<ul>
+<li>Every loop must end</li>
+<li>No memory access outside what it is given</li>
+<li>Only approved kernel functions may be called</li>
+<li>If any check fails, the kernel rejects the program</li>
+</ul>
+</li>
+<li><strong>Hook:</strong> the program is attached to an event and runs every time that event happens</li>
+<li><strong>Map:</strong> a key-value store that lives in the kernel, readable and writable by both the eBPF program and userspace</li>
+</ul>
+<hr>
+<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-8-excalidraw.svg" alt="" loading="lazy"></span></p>
+<hr>
+<h3 id="snapbpf-a-novel-solution-that-utilises-ebpf-for-prefetching-serverless-snapshots">SnapBPF: a novel solution that utilises eBPF for prefetching serverless snapshots</h3>
+<p>The hook SnapBPF uses: <code>kprobe</code></p>
+<p><mark>kprobe</mark>: a hook on (almost) any kernel function.</p>
+<ul>
+<li>Whenever that function runs, the attached eBPF program runs first</li>
+<li>The program receives the function's <strong>arguments</strong></li>
+</ul>
+<hr>
+<p>SnapBPF hooks <code>add_to_page_cache_lru</code>, the function called <strong>every time a page enters the page cache</strong>.</p>
+<p>Its arguments say:</p>
+<ul>
+<li><strong>which file</strong> the page belongs to</li>
+<li><strong>which page</strong> of that file it is (its offset)</li>
+</ul>
+<p>This is exactly the point that the end of the previous section asked for.</p>
+<hr>
+<h3 id="snapbpf-record-phase">SnapBPF: record phase</h3>
+<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-9-excalidraw.svg" alt="" loading="lazy"></span></p>
+<hr>
+<ol>
+<li>VMM restores a sandbox with the snapshot <code>mmap</code>ed, the same as plain demand paging</li>
+<li>Before the guest runs, VMM attaches the <strong>capture program</strong> to the kprobe</li>
+<li>Function is invoked. Each guest miss brings a page into the page cache, and the program fires</li>
+<li>Program keeps only pages of the <strong>snapshot file</strong>, since every file on the machine passes through this hook</li>
+<li>It stores each page's offset in an eBPF map</li>
+<li>After the invocation, the VMM reads the map and saves the offsets to disk</li>
+</ol>
+<hr>
+<p><strong>Readahead is turned off</strong> during recording. Otherwise the kernel would also pull in neighbouring pages the guest never touched, and they would be recorded as working set.</p>
+<p><strong>What gets saved:</strong> a list of page numbers, a few KB in size, not copies of pages. There is no second copy of the working set.</p>
+<hr>
+<h3 id="snapbpf-invocation-phase">SnapBPF: invocation phase</h3>
+<p>Before any restore, the VMM prepares the saved offsets:</p>
+<ul>
+<li><strong>Group</strong> consecutive pages into ranges, e.g. pages 8 to 11 become one range</li>
+<li><strong>Sort</strong> the ranges by when they were first touched during recording, so the earliest-needed pages are read first</li>
+</ul>
+<hr>
+<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-10-excalidraw.svg" alt="" loading="lazy"></span></p>
+<hr>
+<ol>
+<li>New sandbox restores, and the VMM loads the ranges into an eBPF map</li>
+<li>VMM attaches the <strong>prefetch program</strong> to the same kprobe</li>
+<li>VMM touches the first page of the snapshot, which triggers the hook</li>
+<li>The program walks the ranges in order and asks the kernel to read each one <strong>from the snapshot file</strong> into the page cache</li>
+<li>After the last range, the program detaches itself</li>
+</ol>
+<p>Pages are cached as <em>(snapshot, pg N)</em>, which is exactly what the guest looks up. They are hits, with no remapping.</p>
+<hr>
+<h3 id="one-problem-ebpf-cannot-do-io">One problem: eBPF cannot do IO</h3>
+<p>The verifier forbids an eBPF program from issuing disk reads or modifying the page cache.</p>
+<ul>
+<li><strong>Fix:</strong> a <mark>kfunc</mark>, a kernel function that is explicitly made callable from eBPF</li>
+<li>SnapBPF adds one kfunc, <code>snapbpf_prefetch</code></li>
+<li>It wraps the kernel's <strong>own readahead routine</strong>, the same code Linux uses to prefetch file pages</li>
+</ul>
+<p>So the eBPF program decides <em>what</em> to read, and existing, trusted kernel code does the reading.</p>
+<hr>
+<h3 id="wait-aren-t-these-scattered-reads">Wait: aren't these scattered reads?</h3>
+<p>FaaSnap built a packed file to get sequential reads. SnapBPF reads directly from the snapshot, where working-set pages are spread out.</p>
+<ul>
+<li>On spinning disks, this would be slow because each jump means a disk seek</li>
+<li><strong>Modern SSDs</strong> handle many small, non-sequential reads well</li>
+<li>Grouping pages into ranges still reduces the number of requests</li>
+</ul>
+<hr>
+<h3 id="side-by-side">Side by side</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>userfaultfd (REAP, Faast)</th>
+<th>mincore + mmap (FaaSnap)</th>
+<th>eBPF (SnapBPF)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Records in</td>
+<td>userspace</td>
+<td>userspace</td>
+<td>kernel</td>
+</tr>
+<tr>
+<td>Saved to disk</td>
+<td>page copies</td>
+<td>page copies (+ gaps)</td>
+<td>page numbers only</td>
+</tr>
+<tr>
+<td>Memory across sandboxes</td>
+<td>one copy each</td>
+<td>shared</td>
+<td>shared</td>
+</tr>
+<tr>
+<td>Extra mmaps</td>
+<td>none</td>
+<td>many</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="the-other-waste-fresh-allocations">The other waste: fresh allocations</h3>
+<p>Prefetching decides <em>which snapshot pages to load early</em>. There is a second question: should some pages <strong>not be loaded from the snapshot at all</strong>?</p>
+<h4 id="two-page-tables-two-owners">Two page tables, two owners</h4>
+<p>A guest memory access is translated twice:</p>
+<ul>
+<li><strong>Guest page table</strong> (owned by the guest kernel): virtual address → guest page number, e.g. pg 500</li>
+<li><strong>EPT</strong> (owned by KVM): guest page number → real RAM on the host</li>
+</ul>
+<p>After a restore, guest page N is backed by page N of the snapshot file. The first time the guest touches pg 500, the EPT has no entry for it, so KVM steps in and <strong>reads page 500 from the snapshot</strong>.</p>
+<p>The key limit: KVM sees <strong>only the page number</strong>. It never sees <em>why</em> the guest touched it. (it could have been a fresh allocation <code>malloc()</code> call)</p>
+<hr>
+<h4 id="why-this-wastes-reads">Why this wastes reads</h4>
+<p>The guest touches a page for one of two reasons:</p>
+<ol>
+<li><strong>Reading data it already has</strong>, e.g. model weights loaded before the snapshot → needs the snapshot's contents</li>
+<li><strong>Allocating new memory</strong>, e.g. a fresh buffer for this request
+<ul>
+<li>The guest's allocator hands out a page it considers free</li>
+<li>That page's old contents in the snapshot are leftover garbage</li>
+<li>The guest will zero or overwrite it immediately</li>
+</ul>
+</li>
+</ol>
+<hr>
+<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-11-excalidraw.svg" alt="" loading="lazy"></span></p>
+<p>Both reach KVM as the same fault on a page number, so both get a disk read. For case 2, that read is <strong>pure waste</strong> on the critical path.</p>
+<hr>
+<p>It also confuses the recording:</p>
+<ul>
+<li>New allocations can land on <strong>different free pages</strong> in each invocation</li>
+<li>So the recorded working set includes pages the next invocation won't use, and misses ones it will</li>
+</ul>
+<p><strong>What KVM should do for case 2:</strong> hand the guest a zeroed page from host RAM, with no disk read. The hard part is <em>knowing</em> it is case 2.</p>
+<hr>
+<h4 id="why-a-zeroed-page">Why a <em>zeroed</em> page?</h4>
+<p>For a fresh allocation the guest doesn't care what the page contains, since it will overwrite it. So why not hand over any spare page?</p>
+<ul>
+<li><strong>Safety:</strong> a spare host page may still hold another VM's or process's data, so handing it over unwiped would leak it. Linux therefore always <strong>zeroes a page before giving it out</strong>.</li>
+<li><strong>Cost:</strong> zeroing happens in RAM, which is far cheaper than a disk read</li>
+<li><strong>Correctness:</strong> the guest expects garbage in a newly allocated page, so zeros are as good as anything</li>
+</ul>
+<p>So &quot;zeroed page&quot; really just means <strong>a new page from host RAM instead of from the snapshot</strong>.</p>
+<hr>
+<h4 id="prior-work-find-the-free-pages-before-restoring">Prior work: find the free pages <em>before</em> restoring</h4>
+<p>Both need the same answer: <strong>which pages of this snapshot are free memory?</strong> Those pages can then be served as zeroed pages instead of read from disk.</p>
+<p><strong>FaaSnap: make free pages recognisable</strong></p>
+<ul>
+<li>A freed page normally keeps its old data, so in the snapshot it looks exactly like a page in use</li>
+<li>Fix: patch the guest kernel to <strong>write zeros into every page it frees</strong></li>
+<li>Now every free page in the snapshot is all zeros</li>
+<li>Scan the snapshot. Any all-zero page is served as a zeroed page, with no disk read.</li>
+<li>Even if an all-zero page was <em>in use</em>, serving zeros is still correct, because its content was zero anyway</li>
+</ul>
+<hr>
+<p><strong>Faast: read the guest's free list</strong></p>
+<ul>
+<li>The guest kernel keeps its own record of which pages are free</li>
+<li>That record lives in guest memory, so it is <strong>inside the snapshot</strong></li>
+<li>Read it out of the snapshot file to get the list of free pages</li>
+</ul>
+<p><strong>Costs of both</strong></p>
+<ul>
+<li>A pass over the whole snapshot (as large as guest RAM), repeated for every new snapshot</li>
+<li>Both only know what was free <strong>when the snapshot was taken</strong>
+<ul>
+<li>The guest frees and reallocates memory <em>while it runs</em>, and they cannot see that</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h4 id="snapbpf-let-the-guest-tell-kvm-at-allocation-time">SnapBPF: let the guest tell KVM, at allocation time</h4>
+<p><mark>Paravirtualization (PV)</mark>: modify the guest kernel so it knows it runs in a VM and cooperates with the host.</p>
+<p><strong>The problem is the channel</strong></p>
+<ul>
+<li>An explicit call to the host on every allocation means one VM exit per allocation, which is far too expensive</li>
+<li>But a fault reaches KVM anyway on first touch, and the only thing it carries is the <strong>page number</strong></li>
+<li>So <strong>encode the hint in the page number itself</strong></li>
+</ul>
+<hr>
+<p><strong>PV PTE marking</strong></p>
+<ul>
+<li>The guest kernel allocates pg 500 for new data</li>
+<li>In its page table, instead of pg 500 it writes <strong>pg 500 with the top bit set</strong>
+<ul>
+<li>That number is far beyond the guest's real RAM, so no real page has it</li>
+<li>It is a &quot;mirror&quot; of pg 500</li>
+</ul>
+</li>
+<li>The guest touches it → no EPT entry → fault reaches KVM, the same exit that would have happened anyway</li>
+<li>KVM checks the top bit:
+<ul>
+<li><strong>Set</strong> → fresh allocation → back it with a <strong>zeroed page from host RAM</strong>, no disk read</li>
+<li><strong>Clear</strong> → normal fault → read from the snapshot (served from the page cache if prefetched)</li>
+</ul>
+</li>
+<li>KVM maps that zeroed page at <strong>both</strong> the mirror and the real pg 500. Later accesses through either number reach the same memory.</li>
+</ul>
+<hr>
+<p><span class="internal-embed image-embed" alt="wide"><img src="paper-review-snapbpf-12-excalidraw.svg" alt="wide" loading="lazy"></span></p>
+<p><strong>Net effect</strong></p>
+<ul>
+<li>No scan, no preprocessing</li>
+<li>No extra VM exits</li>
+<li>Works for allocations made <strong>after</strong> the snapshot, which scanning can never see</li>
+</ul>
+<hr>
+<h4 id="snapbpf-results">SnapBPF results</h4>
+<p><strong>One sandbox</strong></p>
+<ul>
+<li><strong>Faster than REAP:</strong> no page copies through userspace</li>
+<li><strong>Matches or beats FaaSnap:</strong> no copy into a working set file, and no gap pages</li>
+</ul>
+<p><strong>10 concurrent sandboxes of one function</strong></p>
+<ul>
+<li><strong>Up to 8× lower latency than REAP</strong> (BERT): the working set is read once and shared</li>
+<li><strong>Up to 6× less memory</strong> (BFS, BERT): REAP keeps one copy per sandbox</li>
+</ul>
+<hr>
+<p><strong>Which part helps which function</strong></p>
+<ul>
+<li>Allocation-heavy functions (image processing) gain most from PTE marking: <strong>over 2× faster</strong></li>
+<li>Functions with a large loaded model (RNN, BERT) gain almost entirely from prefetching</li>
+</ul>
+<hr>
+<h3 id="open-questions">Open questions</h3>
+<ul>
+<li><strong>Same input every time:</strong> all 10 sandboxes ran the same input, which is the best case for sharing. Varying inputs is left to future work. This heavily favours the strong results for snapBPF.</li>
+<li><strong>Kernel changes in three places:</strong> a new <code>kfunc</code> on the host, a KVM patch, and a modified guest kernel, which is a real cost to deploy.</li>
+<li><strong>Where is the snapshot coming from:</strong> the snapshot must be a file on the host so the page cache can hold it. That brings back our opening question about where snapshots live. AWS has a really complicated way of answering that question which leads to a bunch of other scheduling and placement decisions it makes not just at local node level but at AZ level, whether snapshots are in S3, the AZ distributed cache or local disk. This state is not captured in any of the approaches considered.</li>
+</ul>
+<hr>
+<h3 id="closing-thoughts">Closing thoughts</h3>
+<p>Serverless computing still has lots of room for optimisations that can be made and SnapBPF was a refreshing reminder of the same.</p>
+<p>There is much more juice that can be squeezed out.</p>
+<p>The rise of AI agents is accelerating demand for serverless computing, as autonomous workloads require scalable, on-demand compute to execute tasks in isolated environments.</p>
+<hr>
+
+</article>
+<footer class="site-footer"><a href="../">← all posts</a></footer>
+</div>
+</div>
+</body>
+</html>

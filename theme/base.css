@@ -1,0 +1,39 @@
+/* Stand-ins for what Obsidian's default (light) theme provides.
+   Your vault CSS (user.css) loads after this and wins. */
+:root {
+  color-scheme: light;
+  --highlight-height: 0.6em;   /* used by the ==highlight== rule in your CSS */
+  --highlight-offset: 0.65em;
+  --file-line-width: 720px;
+  --code-bg: #f4f4f2;
+  --link: #5a3fc0;
+  --border: rgba(0, 0, 0, 0.18);
+}
+html, body { margin: 0; padding: 0; background: #fbfbf9; color: #1f1f1f; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+.markdown-preview-view { min-height: 100vh; box-sizing: border-box; padding: 32px 16px 96px; overflow-x: hidden; }
+.markdown-preview-sizer { max-width: var(--file-line-width); margin: 0 auto; }
+
+.markdown-rendered a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.markdown-rendered img { max-width: 100%; height: auto; }
+.markdown-rendered .internal-embed { display: block; margin: 32px 0; }
+
+.markdown-rendered pre { background: var(--code-bg); padding: 16px; overflow-x: auto; font-size: 15px; line-height: 24px; }
+.markdown-rendered code { background: var(--code-bg); padding: 0.1em 0.3em; font-size: 0.85em; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.markdown-rendered pre code { background: none; padding: 0; font-size: inherit; }
+
+.markdown-rendered blockquote { margin: 32px 0; padding: 0 0 0 20px; border-left: 2px solid var(--border); color: #444; }
+.markdown-rendered table { border-collapse: collapse; margin: 32px 0; display: block; overflow-x: auto; max-width: 100%; }
+.markdown-rendered th, .markdown-rendered td { border: 1px solid var(--border); padding: 4px 12px; text-align: left; vertical-align: top; }
+.markdown-rendered th { background: rgba(0, 0, 0, 0.04); }
+
+.callout { margin: 32px 0; padding: 12px 16px; border-left: 3px solid #5a7bd6; background: rgba(90, 123, 214, 0.08); border-radius: 4px; }
+.callout[data-callout="warning"], .callout[data-callout="caution"] { border-color: #d6913d; background: rgba(214, 145, 61, 0.1); }
+.callout[data-callout="danger"], .callout[data-callout="error"], .callout[data-callout="bug"] { border-color: #d64545; background: rgba(214, 69, 69, 0.08); }
+.callout[data-callout="tip"], .callout[data-callout="success"] { border-color: #3d9e6b; background: rgba(61, 158, 107, 0.08); }
+.callout-title { font-weight: 700; }
+.callout-content > :first-child { margin-top: 0; }
+.callout-content > :last-child { margin-bottom: 0; }
+
+.footnotes { font-size: 0.9em; }

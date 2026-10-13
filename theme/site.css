@@ -1,0 +1,19 @@
+/* Blog chrome: header, post meta, index list */
+.site-header { margin-bottom: 32px; }
+.site-header a, .site-footer a, .post-meta a { color: inherit; }
+.site-header a { font-weight: 700; text-decoration: none; }
+.post-meta { color: #666; margin: 0 0 32px; }
+.site-footer { margin-top: 64px; }
+
+.post-list { list-style: none; padding: 0; margin: 0; }
+.post-item { margin: 0 0 32px; }
+.post-link { font-size: 28px; line-height: 32px; font-weight: 700; color: inherit !important; text-decoration: none; }
+.post-link:hover { text-decoration: underline; }
+.post-item .post-meta { margin: 0; }
+.post-desc { margin: 0; }
+
+@media (max-width: 600px) {
+  .markdown-preview-view h1 { font-size: 40px !important; line-height: 64px !important; }
+  .markdown-preview-view h2 { font-size: 34px !important; line-height: 64px !important; }
+  .markdown-preview-view h3 { font-size: 28px !important; line-height: 32px !important; }
+}
