@@ -1,5 +1,11 @@
 /* Blog chrome: header, post meta, index list */
-.site-header { margin-bottom: 32px; }
+.site-header { margin-bottom: 32px; display: flex; justify-content: space-between; align-items: baseline; }
+.site-header .profile-link { font-size: 14px; color: #666; text-decoration: none; }
+.site-header .profile-link:hover { text-decoration: underline; }
+.tagline { margin: 0; color: #444; }
+.tagline a { color: #666; font-size: 14px; text-decoration: none; }
+.tagline a:hover { text-decoration: underline; }
+.profile-banner { display: block; width: 100%; aspect-ratio: 2 / 1; object-fit: cover; object-position: 50% 62%; border-radius: 8px; margin: 0 0 32px; }
 .site-header a, .site-footer a, .post-meta a { color: inherit; }
 .site-header a { font-weight: 700; text-decoration: none; }
 .post-meta { color: #666; margin: 0 0 32px; }

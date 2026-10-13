@@ -2,8 +2,6 @@
    Your vault CSS (user.css) loads after this and wins. */
 :root {
   color-scheme: light;
-  --highlight-height: 0.6em;   /* used by the ==highlight== rule in your CSS */
-  --highlight-offset: 0.65em;
   --file-line-width: 720px;
   --code-bg: #f4f4f2;
   --link: #5a3fc0;

@@ -17,7 +17,7 @@
 <body>
 <div class="markdown-preview-view markdown-rendered">
 <div class="markdown-preview-sizer">
-<header class="site-header"><a href="../">Aalhad Sawane</a></header>
+<header class="site-header"><a href="../">Aalhad Sawane</a><a class="profile-link" href="../profile/">profile</a></header>
 <p class="post-meta">13 Oct 2026 · <a href="slides.html">view as slides</a></p>
 <article>
 <h1 id="serverless-snapshot-prefetching-from-first-principles-to-the-frontier">Serverless Snapshot Prefetching: From First Principles to the Frontier</h1>
@@ -34,7 +34,6 @@
 <hr>
 <p><strong>One of the leading challenges that must be tackled in serverless computing:</strong></p>
 <p><mark>Cold start</mark>: The latency incurred when a function invocation requires a new execution environment to be created and initialized before execution.</p>
-<hr>
 <p>Different levels of isolation for the sandbox: process based, container based and VM based.<br>
 Each level has different ways to tackle cold starts:</p>
 <ol>
@@ -85,7 +84,6 @@ Each level has different ways to tackle cold starts:</p>
 <li>Find the OS on disk (bootloader)</li>
 <li>Decompress and load the kernel</li>
 </ul>
-<hr>
 <p><strong>Why a microVM doesn’t need it</strong></p>
 <ul>
 <li>Hardware is emulated by the VMM</li>
@@ -110,7 +108,6 @@ Each level has different ways to tackle cold starts:</p>
 <li>Set vCPU registers to the kernel entry point</li>
 <li>Start the vCPU</li>
 </ul>
-<hr>
 <p><span class="internal-embed image-embed" alt="wide"><img src="paper-review-snapbpf-2-excalidraw.svg" alt="wide" loading="lazy"></span></p>
 <hr>
 <p><strong>After the guest runs</strong></p>
@@ -128,7 +125,6 @@ Each level has different ways to tackle cold starts:</p>
 <li>Runs as PID 1</li>
 <li>Starts services and the application</li>
 </ul>
-<hr>
 <p><strong>Restore is different</strong></p>
 <ul>
 <li>A snapshot restore skips kernel init, so the guest resumes with kernel and userspace already running</li>
@@ -137,7 +133,6 @@ Each level has different ways to tackle cold starts:</p>
 <h3 id="a-step-further-why-stop-at-kernel-image">A step further: why stop at kernel image?</h3>
 <p><mark>Snapshot Restore</mark>: Can we take a snapshot after kernel and userspace is initialised and running already?</p>
 <p>This way we can <em>skip past</em> the delay caused by kernel init and userspace init.</p>
-<hr>
 <h4 id="what-a-snapshot-holds">What a snapshot holds</h4>
 <ul>
 <li>Taken after kernel init, userspace init, and runtime warm-up</li>
@@ -189,7 +184,8 @@ Each level has different ways to tackle cold starts:</p>
 <li>A worker node cannot hold them all, so snapshots live in <strong>remote, shared storage</strong> like S3 for Lambda; workers keep at most a cache on local disk.</li>
 </ul>
 <hr>
-<p>Now the problem: <code>mmap</code> maps a <strong>file</strong> into the address space, and the kernel's fault path reads pages from that file. A snapshot sitting in remote storage is not such a file.</p>
+<h3 id="demand-paging-on-remote-file">Demand paging on remote file?</h3>
+<p><code>mmap</code> maps a <strong>file</strong> into the address space, and the kernel's fault path reads pages from that file. A snapshot sitting in remote storage is not such a file.</p>
 <p>Two ways out:</p>
 <ol>
 <li>Handle the page fault <strong>ourselves, in userspace</strong> → <code>userfaultfd</code></li>
@@ -209,7 +205,6 @@ Each level has different ways to tackle cold starts:</p>
 <hr>
 <p><em>Overhead</em>: <code>uffdh</code> only manages the contents of a page, the actual page allocation and copying of the contents is still made by kernel.</p>
 <p>This means using <code>userfaultfd</code> leads to heavy <strong>context switching</strong>. (first from kernelspace to userspace for fault handling then userspace to kernelspace for actual allocation)</p>
-<hr>
 <p><strong>Fault path</strong></p>
 <ol>
 <li>Guest first touches a page.</li>
@@ -236,7 +231,6 @@ Each level has different ways to tackle cold starts:</p>
 <li><code>uffdh</code> serves <em>every</em> fault, so it sees every page the invocation touches</li>
 <li>It writes those pages' <strong>contents</strong> into a compact <strong>working set file</strong></li>
 </ul>
-<hr>
 <p><strong>Invocation phase</strong> (later restores)</p>
 <ul>
 <li>The handler reads the working set file in one go and installs all its pages <strong>before</strong> the guest asks</li>

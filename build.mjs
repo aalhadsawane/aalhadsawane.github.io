@@ -202,7 +202,7 @@ ${css.map((href) => `<link rel="stylesheet" href="${href}">`).join("\n")}
 ${extra}
 </head>`;
 
-const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a></header>`;
+const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a><a class="profile-link" href="${prefix}profile/">profile</a></header>`;
 
 function postPage(post) {
   return `${head({
@@ -269,11 +269,53 @@ ${p.description ? `<p class="post-desc">${escapeHtml(p.description)}</p>` : ""}
 <div class="markdown-preview-view markdown-rendered">
 <div class="markdown-preview-sizer">
 <h1>${escapeHtml(config.title)}</h1>
-${config.description ? `<p>${escapeHtml(config.description)}</p>` : ""}
+<p class="tagline">${config.description ? `${escapeHtml(config.description)} · ` : ""}<a href="profile/">profile</a></p>
 <hr>
 <ul class="post-list">
 ${items || "<li>No posts yet.</li>"}
 </ul>
+</div>
+</div>
+</body>
+</html>
+`;
+}
+
+const SOCIALS = {
+  github: ["GitHub", (h) => `https://github.com/${h}`],
+  twitter: ["Twitter", (h) => `https://x.com/${h}`],
+  linkedin: ["LinkedIn", (h) => `https://www.linkedin.com/in/${h}`],
+};
+
+// profile.md: bio as markdown, optional contact/social handles as properties.
+// Leave a property empty and it is simply not shown.
+function profilePage(file) {
+  const { data, content } = matter(fs.readFileSync(file, "utf8"));
+  const links = [];
+  for (const [key, [label, toUrl]] of Object.entries(SOCIALS)) {
+    const v = data[key] && String(data[key]).trim();
+    if (!v) continue;
+    const url = /^https?:/.test(v) ? v : toUrl(v.replace(/^@/, "").replace(/^\/+|\/+$/g, ""));
+    links.push(`<a href="${escapeHtml(url)}" rel="me noopener">${label}</a>`);
+  }
+  const email = data.email && String(data.email).trim();
+  const contact = email ? `<p>Contact: <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></p>` : "";
+  const hasBanner = fs.existsSync(path.join(ROOT, "theme/header.jpg"));
+  return `${head({
+    title: `Profile · ${config.title}`,
+    description: firstParagraph(md.render(content)),
+    css: ["../assets/base.css", "../assets/user.css", "../assets/site.css"],
+  })}
+<body>
+<div class="markdown-preview-view markdown-rendered">
+<div class="markdown-preview-sizer">
+${siteHeader("../")}
+${hasBanner ? `<img class="profile-banner" src="../assets/header.jpg" alt="${escapeHtml(config.title)} giving a talk">` : ""}
+<h1>${escapeHtml(data.heading || "About")}</h1>
+${md.render(content)}
+${contact}
+${links.length ? `<p>${links.join(" · ")}</p>` : ""}
+<footer class="site-footer"><a href="../">← all posts</a></footer>
 </div>
 </div>
 </body>
@@ -357,7 +399,7 @@ function build() {
     post.slides = splitOutsideFences(src, /^---\s*$/).map((h) => {
       const verticals = splitOutsideFences(h, /^--\s*$/).map((v) => {
         const [content, notes] = splitNotes(v);
-        return `<section>${md.render(content)}${notes.trim() ? `<aside class="notes">${md.render(notes)}</aside>` : ""}</section>`;
+        return `<section><div absolute="true">${md.render(content)}</div>${notes.trim() ? `<aside class="notes">${md.render(notes)}</aside>` : ""}</section>`;
       });
       return verticals.length > 1 ? `<section>${verticals.join("\n")}</section>` : verticals[0];
     }).join("\n");
@@ -389,6 +431,14 @@ function build() {
 
   for (const f of ["base.css", "site.css", "slides.css"]) fs.copyFileSync(path.join(ROOT, "theme", f), path.join(OUT, "assets", f));
   fs.copyFileSync(path.join(ROOT, "node_modules/highlight.js/styles/github.min.css"), path.join(OUT, "assets/hljs.css"));
+
+  const header = path.join(ROOT, "theme/header.jpg");
+  if (fs.existsSync(header)) fs.copyFileSync(header, path.join(OUT, "assets/header.jpg"));
+  const profileFile = path.join(ROOT, "profile.md");
+  if (fs.existsSync(profileFile)) {
+    fs.mkdirSync(path.join(OUT, "profile"), { recursive: true });
+    fs.writeFileSync(path.join(OUT, "profile/index.html"), profilePage(profileFile));
+  }
 
   fs.writeFileSync(path.join(OUT, "index.html"), indexPage(posts));
   fs.writeFileSync(path.join(OUT, ".nojekyll"), "");

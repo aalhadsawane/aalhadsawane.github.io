@@ -14,6 +14,8 @@
   --font-text-size: 20px;
   --caret-color: #000000;
   --highlight: rgba(245, 214, 110, 0.6);     /* ==highlight== marker color */
+  --highlight-height: 0.6em;                 /* marker stroke height */
+  --highlight-offset: 0.65em;                /* marker stroke starts this far down */
 }
 
 /* ---- SLIDES: reveal.js theme variables + viewport colour ----
@@ -256,4 +258,81 @@ img[alt~="full"]:not(.internal-embed img) {
   width: 100%;
   max-width: none;
   margin: 0 auto;
+}
+
+
+/* ==========================================================================
+   SLIDES: top-aligned, with room above, left-aligned text, centered figures.
+   Advanced Slides wraps every slide in a flex <div absolute="true"> that
+   centers its children both ways via inline style, so these need !important.
+   The blog build emits the same wrapper, so this block drives both.
+   ========================================================================== */
+.reveal .slides section {
+  top: 0 !important;                 /* reveal sets an inline top when centering */
+}
+.reveal .slides section > div[absolute="true"] {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;   /* top-aligned, not vertically centered */
+  align-items: stretch !important;          /* full-width blocks, so text stays left */
+  padding-top: 64px;                        /* 2 dot rows of breathing room */
+  box-sizing: border-box;
+  text-align: left;
+}
+
+/* figures: centered, no theme frame */
+.reveal .slides section img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  margin: 32px auto !important;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   FIX: Obsidian "system" theme + dark macOS = dark-theme colours leaking into
+   the light page (grey table headers, white find-in-page text). Pin them.
+   ========================================================================== */
+.markdown-preview-view,
+.markdown-source-view.mod-cm6 {
+  --text-muted: #555;
+  --text-faint: #777;
+  --text-on-accent: var(--ink);
+  --text-highlight-bg: var(--highlight);
+  --text-highlight-bg-active: rgba(245, 160, 60, 0.6);
+  --table-header-color: var(--ink);
+  --table-header-background: transparent;
+  --table-header-background-hover: rgba(0, 0, 0, 0.04);
+  --table-border-color: rgba(0, 0, 0, 0.25);
+}
+/* table headers: reading view, live preview and source mode */
+.markdown-rendered th,
+.markdown-preview-view th,
+.markdown-source-view .table-view-table th,
+.markdown-source-view .table-view-table thead td,
+.markdown-source-view .cm-s-obsidian .HyperMD-table-row-0,
+.markdown-source-view .cm-s-obsidian .HyperMD-table-row-0 span {
+  color: var(--ink) !important;
+  font-weight: 700;
+}
+/* find-in-page (Ctrl/Cmd+F): keep the matched text dark on the highlight */
+.markdown-source-view.mod-cm6 .cm-searchMatch,
+.markdown-source-view.mod-cm6 .cm-searchMatch span {
+  color: var(--ink) !important;
+  background-color: var(--highlight);
+}
+.markdown-source-view.mod-cm6 .cm-searchMatch-selected,
+.markdown-source-view.mod-cm6 .cm-searchMatch-selected span {
+  color: var(--ink) !important;
+  background-color: rgba(245, 160, 60, 0.6);
+}
+.markdown-preview-view .search-highlight > div {
+  background-color: var(--highlight);
+  mix-blend-mode: multiply;          /* highlight sits over the text, so never wash it out */
+}
+.markdown-preview-view .search-highlight > div.is-active {
+  background-color: rgba(245, 160, 60, 0.6);
 }
