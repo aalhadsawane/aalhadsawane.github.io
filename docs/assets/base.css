@@ -10,7 +10,7 @@
 html, body { margin: 0; padding: 0; background: #fbfbf9; color: #1f1f1f; }
 body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
-.markdown-preview-view { min-height: 100vh; box-sizing: border-box; padding: 32px 16px 96px; overflow-x: hidden; }
+.markdown-preview-view { position: relative; min-height: 100vh; box-sizing: border-box; padding: 32px 16px 96px; overflow-x: hidden; }
 .markdown-preview-sizer { max-width: var(--file-line-width); margin: 0 auto; }
 
 .markdown-rendered a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 3px; }

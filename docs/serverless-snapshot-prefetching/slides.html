@@ -117,7 +117,8 @@ Each level has different ways to tackle cold starts:</p>
 <li>Mounts the root filesystem</li>
 <li>Starts PID 1</li>
 </ul>
-<p><strong>Userspace init</strong></p>
+</div></section>
+<section><div absolute="true"><p><strong>Userspace init</strong></p>
 <ul>
 <li>Runs as PID 1</li>
 <li>Starts services and the application</li>
@@ -236,7 +237,7 @@ Each level has different ways to tackle cold starts:</p>
 </ul>
 <p><em>Why direct I/O?</em> Serverless involves countless ephemeral functions, using page cache for all snapshots would pollute cache and lead to heavy thrashing</p>
 </div></section>
-<section><div absolute="true"><p><strong>Cost</strong></p>
+<section><div absolute="true"><h3 id="disadvantages">Disadvantages</h3>
 <ul>
 <li>A second copy of the working set, stored per function</li>
 <li>Every snapshot page is copied through <code>uffdh</code>'s userspace buffer into guest RAM.</li>
@@ -281,30 +282,58 @@ Each level has different ways to tackle cold starts:</p>
 </ul>
 <p>Why copy at all? In the snapshot, these pages are scattered across gigabytes, so reading them means many small random reads. Packed into one file, they take a few large sequential reads.</p>
 </div></section>
-<section><div absolute="true"><h4 id="prefetch-one-catch-with-the-page-cache">Prefetch: one catch with the page cache</h4>
-<p>The page cache is indexed by <strong>(file, page within that file)</strong>.</p>
+<section><div absolute="true"><h4 id="prefetch-get-the-working-set-into-ram-early">Prefetch: get the working set into RAM early</h4>
+<p><strong>Goal:</strong> by the time the guest touches a working-set page, that page is already in RAM.</p>
+<p><strong>Plan:</strong> a background thread reads the whole WS file. It ignores the data; reading is just a way to pull the file's pages into the page cache.</p>
+<p><strong>How the page cache finds a page</strong></p>
 <ul>
-<li>A background thread reads the working set file → the cache now holds <em>(WS file, pg 2)</em></li>
-<li>But the guest's memory is a mapping of the <em>snapshot</em>, so its fault looks up <em>(snapshot, pg 3)</em> → <strong>miss</strong></li>
-<li>The same bytes are cached under a different name</li>
+<li>Each cached page is labelled by <strong>the file it came from</strong> and <strong>its position in that file</strong></li>
+<li>Each page of guest memory is backed by one file, at one position in it</li>
+<li>When the guest first touches a page, the kernel asks the page cache: <em>&quot;do you have this file, at this position?&quot;</em>
+<ul>
+<li>Yes → use that copy, no disk read</li>
+<li>No → read it from disk</li>
+</ul>
+</li>
+</ul>
+</div></section>
+<section><div absolute="true"><p><strong>The mismatch</strong></p>
+<ul>
+<li>The background thread's read caches the working set under the <strong>WS file's</strong> label</li>
+<li>Guest memory is mapped from the <strong>snapshot</strong>, so a guest fault searches under the snapshot's label</li>
+<li>The search misses and goes to disk, even though the exact bytes are already sitting in RAM, just under a different name (as an offset in <code>WS</code> file instead of snapshot file)</li>
+</ul>
+</div></section>
+<section><div absolute="true"><h4 id="fix-back-those-pages-with-the-ws-file">Fix: back those pages with the WS file</h4>
+<ul>
+<li><code>mmap</code> the WS file over the snapshot mapping, so each working-set page of guest memory is backed by its copy in the WS file</li>
+<li>Now a guest fault searches under the WS file's label → found → no disk read</li>
+<li>Every other page is still backed by the snapshot</li>
 </ul>
 </div></section>
 <section><div absolute="true"><p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-6-excalidraw.svg" alt="" loading="lazy"></span></p>
 </div></section>
-<section><div absolute="true"><p><strong>Fix: remap.</strong> Map the working set file over the snapshot mapping, at the guest addresses its pages came from. A fault on guest pg 3 now looks up <em>(WS file, pg 2)</em> → <strong>hit</strong>, no disk read.</p>
-<p><strong>Win:</strong> the page cache is shared, so sandbox 2 of the same function hits the same cached pages. That means one copy in memory, not one per sandbox.</p>
+<section><div absolute="true"><p><strong>Bonus:</strong> the page cache belongs to the whole host, not to one process</p>
+<ul>
+<li>Every sandbox of the same function searches for the same labels and finds them</li>
+<li>So there is one copy of the working set in RAM, however many sandboxes run</li>
+</ul>
 </div></section>
-<section><div absolute="true"><h3 id="the-cost-of-remapping">The cost of remapping</h3>
-<p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-7-excalidraw.svg" alt="" loading="lazy"></span></p>
-</div></section>
-<section><div absolute="true"><ul>
+<section><div absolute="true"><h3 id="but-mmap-is-for-contiguous-ranges">But <code>mmap</code> is for contiguous ranges?</h3>
+<ul>
 <li>In the snapshot, working-set pages are <strong>scattered</strong>. In the working set file, they are <strong>packed</strong>.</li>
 <li>One <code>mmap</code> maps one contiguous range to one contiguous range</li>
-<li>So every run of working-set pages needs its <strong>own mmap</strong> → thousands of them (since contiguous ranges are rare, as most WS is scattered)</li>
-<li>FaaSnap's fix is to merge runs separated by small gaps</li>
+<li>So every contiguous range of working-set pages needs its <strong>own mmap</strong> → thousands of them (since contiguous ranges are rare, as most WS is scattered).
+<ul>
+<li>each arrow in the following diagram represents 1 mmap</li>
+</ul>
+</li>
+<li>FaaSnap's fix is to merge contiguous ranges separated by small gaps</li>
 <li>But then the gap pages get <strong>copied into the file</strong> and read on every restore, even though no invocation touched them</li>
 <li>So the trade-off is fewer mmaps vs. a bigger file and wasted IO</li>
 </ul>
+</div></section>
+<section><div absolute="true"><p><span class="internal-embed image-embed" alt=""><img src="paper-review-snapbpf-7-excalidraw.svg" alt="" loading="lazy"></span></p>
 </div></section>
 <section><div absolute="true"><h3 id="where-both-fall-short">Where both fall short</h3>
 <ul>
@@ -578,6 +607,6 @@ Each level has different ways to tackle cold starts:</p>
 <a class="slides-back" href="./">← article</a>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
-<script>Reveal.initialize(Object.assign({"hash":true,"center":true,"transition":"slide","width":960,"height":700}, { plugins: [RevealNotes] }));</script>
+<script>Reveal.initialize(Object.assign({"hash":true,"center":false,"transition":"slide","width":960,"height":700}, { plugins: [RevealNotes] }));</script>
 </body>
 </html>

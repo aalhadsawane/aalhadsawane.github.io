@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 [ -d node_modules ] || npm ci --silent
 node build.mjs
 [ "${1:-}" = "--dry-run" ] && exit 0
-git add -A docs
+git add -A   # docs plus any source changes (build.mjs, theme, profile.md)
 if git diff --cached --quiet; then echo "Nothing changed."; exit 0; fi
 git commit -q -m "Publish $(date '+%Y-%m-%d %H:%M')"
 git push -q

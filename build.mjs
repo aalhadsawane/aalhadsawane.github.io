@@ -202,7 +202,8 @@ ${css.map((href) => `<link rel="stylesheet" href="${href}">`).join("\n")}
 ${extra}
 </head>`;
 
-const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a><a class="profile-link" href="${prefix}profile/">profile</a></header>`;
+const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a></header>`;
+const profileLink = (prefix) => `<a class="profile-link" href="${prefix}profile/">profile</a>`;
 
 function postPage(post) {
   return `${head({
@@ -212,6 +213,7 @@ function postPage(post) {
   })}
 <body>
 <div class="markdown-preview-view markdown-rendered">
+${profileLink("../")}
 <div class="markdown-preview-sizer">
 ${siteHeader("../")}
 <p class="post-meta">${formatDate(post.date)} · <a href="slides.html">view as slides</a></p>
@@ -267,9 +269,10 @@ ${p.description ? `<p class="post-desc">${escapeHtml(p.description)}</p>` : ""}
   })}
 <body>
 <div class="markdown-preview-view markdown-rendered">
+${profileLink("")}
 <div class="markdown-preview-sizer">
 <h1>${escapeHtml(config.title)}</h1>
-<p class="tagline">${config.description ? `${escapeHtml(config.description)} · ` : ""}<a href="profile/">profile</a></p>
+${config.description ? `<p class="tagline">${escapeHtml(config.description)}</p>` : ""}
 <hr>
 <ul class="post-list">
 ${items || "<li>No posts yet.</li>"}
@@ -292,10 +295,12 @@ const SOCIALS = {
 function profilePage(file) {
   const { data, content } = matter(fs.readFileSync(file, "utf8"));
   const links = [];
+  const resume = data.resume && String(data.resume).trim();
+  if (resume) links.push(`<a href="${escapeHtml(resume)}" rel="noopener">Resume</a>`);
   for (const [key, [label, toUrl]] of Object.entries(SOCIALS)) {
     const v = data[key] && String(data[key]).trim();
     if (!v) continue;
-    const url = /^https?:/.test(v) ? v : toUrl(v.replace(/^@/, "").replace(/^\/+|\/+$/g, ""));
+    const url = /^https?:/.test(v) ? v : /^[\w-]+(\.[\w-]+)+\//.test(v) ? "https://" + v : toUrl(v.replace(/^@/, "").replace(/^\/+|\/+$/g, ""));
     links.push(`<a href="${escapeHtml(url)}" rel="me noopener">${label}</a>`);
   }
   const email = data.email && String(data.email).trim();
@@ -308,6 +313,7 @@ function profilePage(file) {
   })}
 <body>
 <div class="markdown-preview-view markdown-rendered">
+${profileLink("../")}
 <div class="markdown-preview-sizer">
 ${siteHeader("../")}
 ${hasBanner ? `<img class="profile-banner" src="../assets/header.jpg" alt="${escapeHtml(config.title)} giving a talk">` : ""}
