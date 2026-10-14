@@ -203,7 +203,7 @@ ${extra}
 </head>`;
 
 const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a></header>`;
-const profileLink = (prefix) => `<a class="profile-link" href="${prefix}profile/">profile</a>`;
+const profileLink = (prefix) => `<a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a>`;
 
 function postPage(post) {
   return `${head({
