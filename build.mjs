@@ -287,13 +287,16 @@ ${items || "<li>No posts yet.</li>"}
 const SOCIALS = {
   github: ["GitHub", (h) => `https://github.com/${h}`],
   twitter: ["Twitter", (h) => `https://x.com/${h}`],
+  x: ["X", (h) => `https://x.com/${h}`],
   linkedin: ["LinkedIn", (h) => `https://www.linkedin.com/in/${h}`],
 };
 
 // profile.md: bio as markdown, optional contact/social handles as properties.
 // Leave a property empty and it is simply not shown.
 function profilePage(file) {
-  const { data, content } = matter(fs.readFileSync(file, "utf8"));
+  const parsed = matter(fs.readFileSync(file, "utf8"));
+  const content = parsed.content;
+  const data = Object.fromEntries(Object.entries(parsed.data).map(([k, v]) => [k.toLowerCase(), v]));
   const links = [];
   const resume = data.resume && String(data.resume).trim();
   if (resume) links.push(`<a href="${escapeHtml(resume)}" rel="noopener">Resume</a>`);
