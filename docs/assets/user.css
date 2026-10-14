@@ -89,6 +89,8 @@
 .markdown-preview-view h1, .markdown-source-view .cm-header-1, .reveal h1 { font-size: 56px !important; line-height: 96px !important; }
 .markdown-preview-view h2, .markdown-source-view .cm-header-2, .reveal h2 { font-size: 44px !important; line-height: 64px !important; }
 .markdown-preview-view h3, .markdown-source-view .cm-header-3, .reveal h3 { font-size: 34px !important; line-height: 64px !important; }
+/* #### sits between ### and body text: a real step down in size, not just bold */
+.markdown-preview-view h4, .markdown-source-view .cm-header-4, .reveal h4 { font-size: 26px !important; line-height: 32px !important; font-weight: 700; }
 
 /* ==highlight==: marker stroke that starts around the text's middle and
    ends slightly below the bottom of the text box */
@@ -114,14 +116,14 @@
 .markdown-source-view .cm-hr, .markdown-source-view .HyperMD-hr {
   color: rgba(0, 0, 0, 0.12) !important;
 }
-.markdown-preview-view h1, .markdown-preview-view h2, .markdown-preview-view h3,
+.markdown-preview-view h1, .markdown-preview-view h2, .markdown-preview-view h3, .markdown-preview-view h4,
 .markdown-source-view .cm-header,
-.reveal h1, .reveal h2, .reveal h3 {
+.reveal h1, .reveal h2, .reveal h3, .reveal h4 {
   font-family: "Playfair Display", Georgia, serif;
   caret-color: #000000 !important;
 }
 /* reveal's default heading margin would push text off the grid */
-.reveal h1, .reveal h2, .reveal h3 {
+.reveal h1, .reveal h2, .reveal h3, .reveal h4 {
   margin: 0 !important;
   text-transform: none !important;
   text-shadow: none !important;

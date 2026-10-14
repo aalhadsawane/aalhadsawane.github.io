@@ -21,4 +21,5 @@
   .markdown-preview-view h1 { font-size: 40px !important; line-height: 64px !important; }
   .markdown-preview-view h2 { font-size: 34px !important; line-height: 64px !important; }
   .markdown-preview-view h3 { font-size: 28px !important; line-height: 32px !important; }
+  .markdown-preview-view h4 { font-size: 24px !important; }
 }
