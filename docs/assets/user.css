@@ -338,3 +338,13 @@ img[alt~="full"]:not(.internal-embed img) {
 .markdown-preview-view .search-highlight > div.is-active {
   background-color: rgba(245, 160, 60, 0.6);
 }
+
+/* ==========================================================================
+   <div class="pull-up"> ... </div>  (leave blank lines around the content)
+   Pulls a big diagram or block upward into the top margin.
+   Slides: cancels the 64px top padding (2 dot rows).
+   Notes / blog article: cancels one 32px block margin (1 dot row).
+   ========================================================================== */
+.reveal .pull-up { margin-top: -64px; }
+.markdown-preview-view .pull-up,
+.markdown-source-view .pull-up { margin-top: -32px; }

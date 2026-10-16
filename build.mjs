@@ -133,8 +133,26 @@ function convertCallouts(src) {
   });
 }
 
+// Pads standalone <div ...> / </div> lines with blank lines (outside code fences)
+function withBlankLinesAroundDivs(src) {
+  const out = [];
+  let fence = null;
+  for (const line of src.split("\n")) {
+    const m = line.match(/^\s*(`{3,}|~{3,})/);
+    if (m) fence = fence ? (line.trim().startsWith(fence) ? null : fence) : m[1];
+    if (!fence && /^\s*<div\b[^>]*>\s*$/.test(line)) { out.push(line, ""); continue; }
+    if (!fence && /^\s*<\/div>\s*$/.test(line)) { out.push("", line); continue; }
+    out.push(line);
+  }
+  return out.join("\n");
+}
+
 // Turns Obsidian-flavoured markdown into plain markdown/HTML for one post
 function preprocess(src, post, ctx) {
+  // Markdown only renders inside an HTML block after a blank line, so make sure
+  // <div ...> and </div> on their own lines (e.g. <div class="pull-up">) have one.
+  src = withBlankLinesAroundDivs(src);
+
   // %% comments %% (also hides the "Edit in Excalidraw" links)
   src = src.replace(/%%[\s\S]*?%%/g, "");
 
