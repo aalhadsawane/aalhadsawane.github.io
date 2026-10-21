@@ -23,3 +23,19 @@
   .markdown-preview-view h3 { font-size: 28px !important; line-height: 32px !important; }
   .markdown-preview-view h4 { font-size: 24px !important; }
 }
+
+/* Phones: keep diagrams at a readable size and let them scroll sideways inside
+   their own box, instead of shrinking to the screen width. Article only (slides scale themselves). */
+@media (max-width: 700px) {
+  .markdown-rendered .internal-embed {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .markdown-rendered .internal-embed img {
+    width: auto !important;        /* natural size, not the phone width */
+    min-width: 100%;               /* but never narrower than the column */
+    max-width: 1100px !important;  /* very large diagrams are capped */
+  }
+}

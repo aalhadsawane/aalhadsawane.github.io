@@ -1,4 +1,222 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+/* dot-grid-clean.css
+   A minimal dot grid. One dot per 32px row boundary, no dashed boxes.
+
+   THE RULE: every block's total height is a multiple of --row (32px), so every
+   line of text lands on the grid and nothing drifts further down the page:
+     body text      20px / 32px
+     # heading      56px / 96px        ## 44px / 64px        ### 34px / 64px
+     #### heading   26px / 32px        ##### and ######  20px / 32px
+     paragraph and list gap   32px (one empty row)
+     code block     16px padding top + bottom, lines 32px
+     table rows     32px, rules drawn with box-shadow so they add no height
+     hr             32px gap above + 1px rule + 31px below = two rows
+   Not alignable: images / embeds (their height is whatever the picture is), so
+   the grid can shift by a few px after a figure.
+
+   Tuning: if the dots sit on the text instead of between lines, change
+   --grid-shift-y (try 16px). To change the grid size, change --row and the
+   px values above by the same factor. */
+
+
+
+body {
+  --row: 32px;
+  --list-spacing: 0px;                       /* Obsidian pads every list item by this */
+  --grid-shift-y: 0px;
+  --page: #fcfcfb;
+  --ink: #1f1f1f;
+  --dot: rgba(0, 0, 0, 0.2);
+  --dot-radius: 1px;
+  --highlight: rgba(245, 214, 110, 0.6);
+  --font-serif: "Playfair Display", Georgia, serif;
+}
+
+/* ---- the grid -------------------------------------------------------------
+   The dot is the centre of a 32px tile; shifting the tile up by half a row puts
+   the dots on the boundaries between lines (in the gap under descenders and
+   above the next line's capitals), so they never run through the text. */
+.markdown-preview-view,
+.markdown-source-view.mod-cm6 .cm-scroller {
+  background-color: var(--page);
+  background-image: radial-gradient(circle at center, var(--dot) 0, var(--dot) var(--dot-radius), transparent calc(var(--dot-radius) + 0.5px));
+  background-size: var(--row) var(--row);
+  background-position: 0 calc(var(--row) / -2 + var(--grid-shift-y));
+  background-attachment: local;
+}
+
+/* ---- colours: pin the light palette (Obsidian's "system" theme can leak dark
+        colours into this light page, e.g. grey table headers, white search text) */
+.markdown-preview-view,
+.markdown-source-view.mod-cm6 {
+  --background-primary: transparent;
+  --text-normal: var(--ink);
+  --text-muted: #555;
+  --text-faint: #777;
+  --text-on-accent: var(--ink);
+  --text-highlight-bg: var(--highlight);
+  --text-highlight-bg-active: rgba(245, 160, 60, 0.6);
+  --table-header-color: var(--ink);
+  --table-header-background: transparent;
+  --table-header-background-hover: rgba(0, 0, 0, 0.04);
+  --caret-color: #000;
+  color: var(--ink);
+}
+
+/* ---- font and base rhythm ------------------------------------------------ */
+.markdown-preview-view,
+.markdown-rendered,
+.markdown-source-view.mod-cm6 .cm-content,
+.markdown-source-view.mod-cm6 .cm-line {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: var(--row);
+}
+
+/* the file margin is a multiple of the row, so line 1 starts on a row boundary */
+.markdown-preview-view {
+  padding-top: var(--row);
+  padding-bottom: calc(var(--row) * 3);
+}
+
+/* ---- reading view: blocks ------------------------------------------------ */
+.markdown-rendered p,
+.markdown-rendered ul,
+.markdown-rendered ol,
+.markdown-rendered pre,
+.markdown-rendered blockquote,
+.markdown-rendered table,
+.markdown-rendered .callout {
+  margin-block: 0 var(--row);
+}
+.markdown-rendered ul ul, .markdown-rendered ul ol,
+.markdown-rendered ol ul, .markdown-rendered ol ol { margin-block: 0; }
+.markdown-rendered li,
+.markdown-rendered ul > li,
+.markdown-rendered ol > li { margin: 0; padding: 0; line-height: var(--row); }
+.markdown-rendered li > p { margin-block: 0; }
+.markdown-rendered blockquote > :last-child,
+.markdown-rendered .callout-content > :last-child { margin-bottom: 0; }
+
+/* headings: the line-height does the spacing, so the margins are 0 */
+.markdown-rendered h1, .markdown-rendered h2, .markdown-rendered h3,
+.markdown-rendered h4, .markdown-rendered h5, .markdown-rendered h6 {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-serif);
+  letter-spacing: 0;
+}
+.markdown-rendered h1 { font-size: 56px; line-height: calc(var(--row) * 3); }
+.markdown-rendered h2 { font-size: 44px; line-height: calc(var(--row) * 2); }
+.markdown-rendered h3 { font-size: 34px; line-height: calc(var(--row) * 2); }
+.markdown-rendered h4 { font-size: 26px; line-height: var(--row); font-weight: 700; }
+.markdown-rendered h5, .markdown-rendered h6 { font-size: 20px; line-height: var(--row); font-weight: 700; }
+
+/* hr: the previous block's 32px bottom margin is the gap above it (a top margin
+   would just merge with that), then 1px rule + 31px = two rows in total. The
+   rule itself sits exactly on a row of dots. */
+.markdown-rendered hr {
+  height: 0;
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.35);
+  margin: 0 0 31px;
+}
+
+/* code blocks: 16 + (n * 32) + 16; the outline is a shadow, so no border height */
+.markdown-rendered pre {
+  padding: 16px 20px;
+  min-height: 0;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+.markdown-rendered pre code {
+  display: block;
+  font-size: 16px;
+  line-height: var(--row);
+  letter-spacing: 0.04em;
+}
+.markdown-rendered code {
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+}
+/* inline code uses a different font; zero line-height stops it stretching the line box */
+.markdown-rendered :not(pre) > code,
+.markdown-source-view .cm-inline-code { line-height: 0; }
+
+/* blockquote */
+.markdown-rendered blockquote {
+  padding: 0 0 0 20px;
+  border-inline-start: 2px solid rgba(0, 0, 0, 0.25);
+  background: none;
+}
+
+/* tables: 32px rows. Borders would add height, so rules are inset shadows */
+.markdown-rendered table { border-collapse: collapse; line-height: var(--row); }
+.markdown-rendered th,
+.markdown-rendered td {
+  height: var(--row);
+  padding: 0 14px;
+  line-height: var(--row);
+  border: 0;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  vertical-align: middle;
+}
+.markdown-rendered th {
+  color: var(--ink) !important;
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* callouts: 16 + title 32 + content + 16 */
+.markdown-rendered .callout { padding: 16px 20px; border: 0; border-radius: 6px; }
+.markdown-rendered .callout-title { padding: 0; line-height: var(--row); }
+.markdown-rendered .callout-content { padding: 0; }
+
+/* ---- editor (source mode and live preview) ------------------------------- */
+.markdown-source-view.mod-cm6 .cm-line,
+.markdown-source-view.mod-cm6 .cm-line .cm-header { line-height: var(--row); }
+.markdown-source-view .cm-header { font-family: var(--font-serif); }
+.markdown-source-view .HyperMD-header-1, .markdown-source-view .HyperMD-header-1 .cm-header-1 { font-size: 56px; line-height: calc(var(--row) * 3) !important; }
+.markdown-source-view .HyperMD-header-2, .markdown-source-view .HyperMD-header-2 .cm-header-2 { font-size: 44px; line-height: calc(var(--row) * 2) !important; }
+.markdown-source-view .HyperMD-header-3, .markdown-source-view .HyperMD-header-3 .cm-header-3 { font-size: 34px; line-height: calc(var(--row) * 2) !important; }
+.markdown-source-view .HyperMD-header-4, .markdown-source-view .HyperMD-header-4 .cm-header-4 { font-size: 26px; line-height: var(--row) !important; }
+.markdown-source-view .HyperMD-header-5, .markdown-source-view .HyperMD-header-5 .cm-header-5,
+.markdown-source-view .HyperMD-header-6, .markdown-source-view .HyperMD-header-6 .cm-header-6 { font-size: 20px; line-height: var(--row) !important; }
+.markdown-source-view .HyperMD-codeblock,
+.markdown-source-view .HyperMD-codeblock-begin,
+.markdown-source-view .HyperMD-codeblock-end { line-height: var(--row); letter-spacing: 0.04em; }
+.markdown-source-view .HyperMD-codeblock-begin { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+.markdown-source-view .HyperMD-codeblock-end { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+.markdown-source-view.mod-cm6 .cm-hr,
+.markdown-source-view.mod-cm6 hr { color: rgba(0, 0, 0, 0.2); }
+.markdown-source-view.mod-cm6 hr { border: none; height: 1px; background: rgba(0, 0, 0, 0.35); margin: 15px 0 16px; }
+
+/* ---- small things -------------------------------------------------------- */
+/* ==highlight== as a marker stroke */
+.markdown-preview-view mark,
+.markdown-source-view .cm-highlight {
+  background: linear-gradient(var(--highlight), var(--highlight)) no-repeat;
+  background-size: 100% 0.6em;
+  background-position: 0 0.65em;
+  color: inherit;
+}
+/* black caret */
+.markdown-source-view.mod-cm6 .cm-content,
+.markdown-source-view.mod-cm6 .cm-scroller { caret-color: #000; }
+.markdown-source-view.mod-cm6 .cm-cursor,
+.markdown-source-view.mod-cm6 .cm-cursor-primary { border-left: 2px solid #000; }
+/* find-in-page: matched text stays dark on the highlight */
+.markdown-source-view.mod-cm6 .cm-searchMatch,
+.markdown-source-view.mod-cm6 .cm-searchMatch span { color: var(--ink) !important; background-color: var(--highlight); }
+.markdown-source-view.mod-cm6 .cm-searchMatch-selected,
+.markdown-source-view.mod-cm6 .cm-searchMatch-selected span { color: var(--ink) !important; background-color: rgba(245, 160, 60, 0.6); }
+.markdown-preview-view .search-highlight > div { background-color: var(--highlight); mix-blend-mode: multiply; }
+.markdown-preview-view .search-highlight > div.is-active { background-color: rgba(245, 160, 60, 0.6); }
+
+
 
 /* dot-grid-light.css (generated by gen_dot_grid.py, seed 11)
    Works in normal notes AND Advanced Slides (reveal.js). Slide rules are
