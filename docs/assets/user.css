@@ -14,34 +14,38 @@
    Not alignable: images / embeds (their height is whatever the picture is), so
    the grid can shift by a few px after a figure.
 
-   Tuning: if the dots sit on the text instead of between lines, change
-   --grid-shift-y (try 16px). To change the grid size, change --row and the
-   px values above by the same factor. */
+   Tuning: --dot-gap changes only the dots (the text stays on 32px rows).
+   If the dots sit on the text instead of between lines, change --grid-shift-y
+   (try 16px). To change the text grid itself, change --row and the px values
+   above by the same factor. */
 
 
 
 body {
   --row: 32px;
   --list-spacing: 0px;                       /* Obsidian pads every list item by this */
+  --dot-gap: 16px;                          /* dot spacing: 32 / 16 / 8 all stay aligned with the rows */
   --grid-shift-y: 0px;
   --page: #fcfcfb;
   --ink: #1f1f1f;
   --dot: rgba(0, 0, 0, 0.2);
-  --dot-radius: 1px;
+  --dot-radius: 0.9px;
   --highlight: rgba(245, 214, 110, 0.6);
   --font-serif: "Playfair Display", Georgia, serif;
 }
 
 /* ---- the grid -------------------------------------------------------------
-   The dot is the centre of a 32px tile; shifting the tile up by half a row puts
-   the dots on the boundaries between lines (in the gap under descenders and
-   above the next line's capitals), so they never run through the text. */
+   The dot is the centre of a --dot-gap tile; shifting the tile by half its size
+   puts dots on exact multiples of the gap, so a dot row always falls on every
+   line boundary (in the gap under descenders and above the next line's capitals).
+   --dot-gap must divide --row (32, 16, 8, 4...) or the dots drift off the lines.
+   With a gap below 32px the extra dot rows pass behind the text, so keep them faint. */
 .markdown-preview-view,
 .markdown-source-view.mod-cm6 .cm-scroller {
   background-color: var(--page);
   background-image: radial-gradient(circle at center, var(--dot) 0, var(--dot) var(--dot-radius), transparent calc(var(--dot-radius) + 0.5px));
-  background-size: var(--row) var(--row);
-  background-position: 0 calc(var(--row) / -2 + var(--grid-shift-y));
+  background-size: var(--dot-gap) var(--dot-gap);
+  background-position: calc(var(--dot-gap) / -2) calc(var(--dot-gap) / -2 + var(--grid-shift-y));
   background-attachment: local;
 }
 
@@ -331,6 +335,9 @@ body {
   background-color: rgba(0, 0, 0, 0.5) !important;
   margin: 32px 0 !important;
 }
+/* notes: the previous block's 32px bottom margin is already the gap above the rule
+   (a top margin would just merge with it), so 32 + 1px rule + 31px = two whole rows */
+.markdown-preview-view hr { margin: 0 0 31px !important; }
 .markdown-source-view .cm-hr, .markdown-source-view .HyperMD-hr {
   color: rgba(0, 0, 0, 0.12) !important;
 }
@@ -566,3 +573,70 @@ img[alt~="full"]:not(.internal-embed img) {
 .reveal .pull-up { margin-top: -64px; }
 .markdown-preview-view .pull-up,
 .markdown-source-view .pull-up { margin-top: -32px; }
+
+
+/* ==========================================================================
+   ALIGNMENT IN NOTES (reading view) AND THE BLOG: every block is a whole
+   number of 32px rows, so text stays on the dots from the first line to the
+   last. Slides don't need this (reveal already spaces blocks in 32px steps).
+   Why it was needed: Obsidian pads every list item (--list-spacing, 3px) and
+   puts 16px between paragraphs, so lines drifted off the dots a little more
+   with each bullet/paragraph.
+   ========================================================================== */
+.markdown-preview-view,
+.markdown-source-view.mod-cm6 { --list-spacing: 0px; }
+.markdown-preview-view { --p-spacing: 32px; }
+
+.markdown-rendered p,
+.markdown-rendered ul,
+.markdown-rendered ol,
+.markdown-rendered pre,
+.markdown-rendered blockquote,
+.markdown-rendered table,
+.markdown-rendered .callout {
+  margin-block: 0 32px;
+}
+.markdown-rendered ul ul, .markdown-rendered ul ol,
+.markdown-rendered ol ul, .markdown-rendered ol ol { margin-block: 0; }
+.markdown-rendered li,
+.markdown-rendered ul > li,
+.markdown-rendered ol > li { margin: 0; padding: 0; line-height: 32px; }
+.markdown-rendered li > p { margin-block: 0; }
+.markdown-rendered blockquote > :last-child,
+.markdown-rendered .callout-content > :last-child { margin-bottom: 0; }
+
+/* headings: their line-height (96 / 64 / 32) already provides the spacing */
+.markdown-rendered h1, .markdown-rendered h2, .markdown-rendered h3,
+.markdown-rendered h4, .markdown-rendered h5, .markdown-rendered h6 { margin: 0; padding: 0; }
+.markdown-rendered h5, .markdown-rendered h6 { font-size: 20px; line-height: 32px; }
+
+/* code blocks: 16px padding + 32px lines + 16px padding. The outline is a
+   shadow, so it adds no height. */
+.markdown-rendered pre {
+  padding: 16px 20px;
+  min-height: 0;
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+.markdown-rendered pre code { display: block; line-height: 32px; }
+/* inline code uses another font; zero line-height keeps it from stretching its line */
+.markdown-rendered :not(pre) > code { line-height: 0; }
+
+.markdown-rendered blockquote { padding-block: 0; }
+
+/* tables: 32px rows (rules are inset shadows so they add no height) */
+.markdown-rendered table { border-collapse: collapse; }
+.markdown-rendered th,
+.markdown-rendered td {
+  height: 32px;
+  padding: 0 14px;
+  line-height: 32px;
+  border: 0;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  vertical-align: middle;
+}
+
+/* callouts: 16px + title row + content rows + 16px */
+.markdown-rendered .callout { padding: 16px 20px; }
+.markdown-rendered .callout-title { padding: 0; line-height: 32px; }
+.markdown-rendered .callout-content { padding: 0; }
