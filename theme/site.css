@@ -13,7 +13,6 @@
 .post-link { font-size: 28px; line-height: 32px; font-weight: 700; color: inherit !important; text-decoration: none; }
 .post-link:hover { text-decoration: underline; }
 .post-item .post-meta { margin: 0; }
-.post-desc { margin: 0; }
 
 @media (max-width: 600px) {
   .profile-link { right: 16px; }
@@ -59,11 +58,10 @@
 .markdown-rendered .slides-cta:focus-visible { outline: 2px solid #1f1f1f; outline-offset: 3px; }
 .slides-cta-row:last-of-type { margin-top: 32px; }
 
-/* Home page: a small kite between posts, two grid rows tall in total */
+/* Home page: posts are separated by a short dashed rule on a dot row (the site's dashed-segment
+   motif), clearly different from the full-width solid rule under the title. 32 + 1 + 31 = two rows. */
 .post-item { margin: 0; }
 .post-item + .post-item::before {
-  content: ""; display: block;
-  width: 10px; height: 14px; margin: 25px auto;
-  background: #7d7d7d;
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  content: ""; display: block; width: 96px; height: 0;
+  border-top: 1px dashed #808080; margin: 32px 0 31px;
 }

@@ -261,6 +261,7 @@ function slidesPage(post) {
     width: post.data.width || 960,
     height: post.data.height || 700,
     controls: false, // replaced by the full-height side zones below
+    scrollActivationWidth: null, // reveal 5 switches to a plain scrolling column at <=435px, which drops the whole slide theme
   };
   return `${head({
     title: `${post.title} · slides`,
@@ -287,7 +288,14 @@ for (const [el, go] of [[prev, () => Reveal.prev()], [next, () => Reveal.next()]
   el.addEventListener("mousedown", (e) => e.preventDefault());
   el.addEventListener("click", go);
 }
-Reveal.initialize(Object.assign(${JSON.stringify(opts)}, { plugins: [RevealNotes] })).then(sync);
+// Portrait phones: a 480px-wide canvas shaped like the screen, so text stays readable
+// (a 960px canvas squeezed into 390px would render 20px text at about 8px).
+const base = ${JSON.stringify(opts)};
+const size = () => innerWidth <= 700
+  ? { width: 480, height: Math.round(480 * innerHeight / innerWidth) }
+  : { width: base.width, height: base.height };
+Reveal.initialize(Object.assign({}, base, size(), { plugins: [RevealNotes] })).then(sync);
+addEventListener("resize", () => Reveal.configure(size()));
 Reveal.on("slidechanged", sync);
 </script>
 </body>
@@ -299,7 +307,6 @@ function indexPage(posts) {
   const items = posts.map((p) => `<li class="post-item">
 <a class="post-link" href="${p.slug}/">${escapeHtml(p.title)}</a>
 <div class="post-meta">${formatDate(p.date)} · ${p.minutes} min read</div>
-${p.description ? `<p class="post-desc">${escapeHtml(p.description)}</p>` : ""}
 </li>`).join("\n");
   return `${head({
     title: config.title,

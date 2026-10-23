@@ -195,7 +195,14 @@ for (const [el, go] of [[prev, () => Reveal.prev()], [next, () => Reveal.next()]
   el.addEventListener("mousedown", (e) => e.preventDefault());
   el.addEventListener("click", go);
 }
-Reveal.initialize(Object.assign({"hash":true,"center":true,"transition":"slide","width":960,"height":700,"controls":false}, { plugins: [RevealNotes] })).then(sync);
+// Portrait phones: a 480px-wide canvas shaped like the screen, so text stays readable
+// (a 960px canvas squeezed into 390px would render 20px text at about 8px).
+const base = {"hash":true,"center":true,"transition":"slide","width":960,"height":700,"controls":false,"scrollActivationWidth":null};
+const size = () => innerWidth <= 700
+  ? { width: 480, height: Math.round(480 * innerHeight / innerWidth) }
+  : { width: base.width, height: base.height };
+Reveal.initialize(Object.assign({}, base, size(), { plugins: [RevealNotes] })).then(sync);
+addEventListener("resize", () => Reveal.configure(size()));
 Reveal.on("slidechanged", sync);
 </script>
 </body>

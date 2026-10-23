@@ -29,3 +29,9 @@
   color: #555; text-decoration: none;
 }
 .slides-back:hover { text-decoration: underline; }
+
+/* Phones: the strips stay tappable (swipe works too), but the chevron glyph would sit on the text */
+@media (max-width: 700px) {
+  .nav-zone svg { display: none; }
+  .nav-zone:hover { background: none; }
+}
