@@ -224,6 +224,8 @@ ${extra}
 const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a></header>`;
 const profileLink = (prefix) => `<a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a>`;
 
+const SLIDES_BUTTON = `<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides</a></div>`;
+
 function postPage(post) {
   return `${head({
     title: `${post.title} · ${config.title}`,
@@ -235,10 +237,12 @@ function postPage(post) {
 ${profileLink("../")}
 <div class="markdown-preview-sizer">
 ${siteHeader("../")}
-<p class="post-meta">${formatDate(post.date)} · ${post.minutes} min read · <a href="slides.html">view as slides</a></p>
+<p class="post-meta">${formatDate(post.date)} · ${post.minutes} min read</p>
+${SLIDES_BUTTON}
 <article>
 ${post.html}
 </article>
+${SLIDES_BUTTON}
 <footer class="site-footer"><a href="../">← all posts</a></footer>
 </div>
 </div>
