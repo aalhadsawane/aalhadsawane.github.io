@@ -640,3 +640,30 @@ img[alt~="full"]:not(.internal-embed img) {
 .markdown-rendered .callout { padding: 16px 20px; }
 .markdown-rendered .callout-title { padding: 0; line-height: 32px; }
 .markdown-rendered .callout-content { padding: 0; }
+
+/* ### gets a clear gap below it (one whole row, so the text under it stays on the dots) */
+.markdown-rendered h3 { margin-bottom: 32px; }
+
+/* ==========================================================================
+   TEXT SELECTION: the marker-yellow of ==highlight==, not the system blue.
+   Scoped to the note, blog and slide surfaces so Obsidian's own UI is untouched.
+   ========================================================================== */
+.markdown-preview-view ::selection,
+.markdown-source-view ::selection,
+.reveal ::selection,
+.reveal section ::selection {
+  background: rgba(245, 214, 110, 0.75);
+  color: var(--ink);
+  text-shadow: none;
+}
+.markdown-preview-view ::-moz-selection,
+.reveal ::-moz-selection {
+  background: rgba(245, 214, 110, 0.75);
+  color: var(--ink);
+  text-shadow: none;
+}
+/* the editor draws its own selection layer */
+.markdown-source-view.mod-cm6 .cm-selectionBackground,
+.markdown-source-view.mod-cm6 .cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+  background: rgba(245, 214, 110, 0.55) !important;
+}

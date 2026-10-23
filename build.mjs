@@ -224,7 +224,7 @@ ${extra}
 const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a></header>`;
 const profileLink = (prefix) => `<a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a>`;
 
-const SLIDES_BUTTON = `<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides</a></div>`;
+const SLIDES_BUTTON = `<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides<svg class="arrow" viewBox="0 0 20 16" aria-hidden="true"><path d="M2 8h15m-5-5 5 5-5 5"/></svg></a></div>`;
 
 function postPage(post) {
   return `${head({

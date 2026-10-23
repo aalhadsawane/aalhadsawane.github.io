@@ -79,7 +79,7 @@
 <li><strong>Model Metadata</strong> — Load model configuration and tokenizer metadata.</li>
 <li><strong>Worker Setup</strong> — Initialize GPU contexts and shared-memory structures.</li>
 </ol>
-<p><strong>Total Initialization Time: ~10* seconds regardless of model, only depends on vLLM implementation</strong></p>
+<p><strong>Famework Bootstrap takes ~10* seconds regardless of model, only depends on vLLM implementation</strong></p>
 <p>*This step is CPU-bound, and was tested on Intel Xeon Platinum 8568Y+</p>
 </div></section>
 <section><div absolute="true"><h3 id="step-2-3-tokenizer-and-model-loading">Step 2 &amp; 3: Tokenizer and Model Loading</h3>
@@ -157,15 +157,15 @@
 <p><strong>Relation to batch sizes:</strong> a CUDA graph is recorded for one fixed batch size, so every batch size needs its own capture.</p>
 </div></section>
 <section><div absolute="true"><ul>
-<li>With <strong>continuous batching</strong>, requests join and leave the batch at every step, so the batch size keeps changing.<br></br></li>
-<li>vLLM therefore captures graphs for a <strong>predefined set of sizes</strong>, for example 1, 2, 4, 8, 16, and so on.<br></br></li>
+<li>With <strong>continuous batching</strong>, requests join and leave the batch dynamically, so the batch size keeps changing.<br></br></li>
+<li>vLLM therefore captures graphs for a <strong>predefined set of batch sizes</strong>, for example 1, 2, 4, 8, 16, and so on.<br></br></li>
 <li>At runtime, it pads the batch up to the nearest captured size. For example, 5 requests run on the graph for 8.<br></br></li>
 <li>More captured sizes means a longer startup (since every size needs its own CUDA graph capture) but makes up for it in latency with more granular batching.<br></br></li>
 <li>Again, we can see a <strong>cold-start latency vs steady-state latency</strong> tradeoff.</li>
 </ul>
 </div></section>
 <section><div absolute="true"><h3 id="latency-and-cpu-bound-nature-per-step">Latency and CPU-bound nature per-step</h3>
-<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" width="433" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" width="411" loading="lazy"></span></p>
 <div>
 <p>Results are from running LLama3.2-3B on Intel Xeon Platinum 8568Y CPU and H100 GPU. Red marks step 1</p>
 </div>
@@ -178,7 +178,6 @@
 </div></section>
 <section><div absolute="true"><p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-58-22-pm.png" alt="" width="609" loading="lazy"></span></p>
 </div></section>
-<section><div absolute="true"></div></section>
 </div></div>
 <button class="nav-zone nav-prev" tabindex="-1" aria-label="Previous slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="M17 3 4 19l13 16"/></svg></button>
 <button class="nav-zone nav-next" tabindex="-1" aria-label="Next slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="m5 3 13 16L5 35"/></svg></button>

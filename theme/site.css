@@ -10,7 +10,6 @@
 .site-footer { margin-top: 64px; }
 
 .post-list { list-style: none; padding: 0; margin: 0; }
-.post-item { margin: 0 0 32px; }
 .post-link { font-size: 28px; line-height: 32px; font-weight: 700; color: inherit !important; text-decoration: none; }
 .post-link:hover { text-decoration: underline; }
 .post-item .post-meta { margin: 0; }
@@ -40,16 +39,31 @@
   }
 }
 
-/* "View as slides": a real button, two grid rows tall so the text below stays on the dots */
+/* "View as slides": marker-yellow button with a hard shadow, so it reads as pressable.
+   Two grid rows tall so the text below stays on the dots. */
 .slides-cta-row { height: 64px; display: flex; align-items: center; }
 .markdown-rendered .slides-cta {
   display: inline-flex; align-items: center; gap: 10px;
-  height: 44px; padding: 0 20px; box-sizing: border-box;
+  height: 46px; padding: 0 20px; box-sizing: border-box;
   border: 1.5px solid #1f1f1f; border-radius: 8px;
-  background: #1f1f1f; color: #fbfbf9;
+  background: #f5d66e; color: #1f1f1f;
+  box-shadow: 3px 3px 0 #1f1f1f;
   font-size: 18px; line-height: 1; font-weight: 700; text-decoration: none;
-  transition: background-color .15s, color .15s;
+  transition: transform .1s, box-shadow .1s;
 }
-.slides-cta svg { width: 14px; height: 14px; fill: currentColor; }
-.markdown-rendered .slides-cta:hover { background: #f5d66e; color: #1f1f1f; }
+.slides-cta .play { width: 13px; height: 13px; fill: currentColor; }
+.slides-cta .arrow { width: 18px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .1s; }
+.markdown-rendered .slides-cta:hover { transform: translate(1px, 1px); box-shadow: 2px 2px 0 #1f1f1f; }
+.slides-cta:hover .arrow { transform: translateX(3px); }
+.markdown-rendered .slides-cta:active { transform: translate(3px, 3px); box-shadow: 0 0 0 #1f1f1f; }
+.markdown-rendered .slides-cta:focus-visible { outline: 2px solid #1f1f1f; outline-offset: 3px; }
 .slides-cta-row:last-of-type { margin-top: 32px; }
+
+/* Home page: a small kite between posts, two grid rows tall in total */
+.post-item { margin: 0; }
+.post-item + .post-item::before {
+  content: ""; display: block;
+  width: 10px; height: 14px; margin: 25px auto;
+  background: #7d7d7d;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}

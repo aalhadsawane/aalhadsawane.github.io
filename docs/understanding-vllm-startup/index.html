@@ -21,7 +21,7 @@
 <div class="markdown-preview-sizer">
 <header class="site-header"><a href="../">Aalhad Sawane</a></header>
 <p class="post-meta">23 Oct 2026 · 5 min read</p>
-<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides</a></div>
+<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides<svg class="arrow" viewBox="0 0 20 16" aria-hidden="true"><path d="M2 8h15m-5-5 5 5-5 5"/></svg></a></div>
 <article>
 <h1 id="investigating-vllm-s-startup-latency">Investigating vLLM’s Startup Latency</h1>
 <blockquote>
@@ -84,7 +84,7 @@
 <li><strong>Model Metadata</strong> — Load model configuration and tokenizer metadata.</li>
 <li><strong>Worker Setup</strong> — Initialize GPU contexts and shared-memory structures.</li>
 </ol>
-<p><strong>Total Initialization Time: ~10* seconds regardless of model, only depends on vLLM implementation</strong></p>
+<p><strong>Famework Bootstrap takes ~10* seconds regardless of model, only depends on vLLM implementation</strong></p>
 <p>*This step is CPU-bound, and was tested on Intel Xeon Platinum 8568Y+</p>
 <hr>
 <h3 id="step-2-3-tokenizer-and-model-loading">Step 2 &amp; 3: Tokenizer and Model Loading</h3>
@@ -162,15 +162,15 @@
 <p><strong>Relation to batch sizes:</strong> a CUDA graph is recorded for one fixed batch size, so every batch size needs its own capture.</p>
 <hr>
 <ul>
-<li>With <strong>continuous batching</strong>, requests join and leave the batch at every step, so the batch size keeps changing.<br></br></li>
-<li>vLLM therefore captures graphs for a <strong>predefined set of sizes</strong>, for example 1, 2, 4, 8, 16, and so on.<br></br></li>
+<li>With <strong>continuous batching</strong>, requests join and leave the batch dynamically, so the batch size keeps changing.<br></br></li>
+<li>vLLM therefore captures graphs for a <strong>predefined set of batch sizes</strong>, for example 1, 2, 4, 8, 16, and so on.<br></br></li>
 <li>At runtime, it pads the batch up to the nearest captured size. For example, 5 requests run on the graph for 8.<br></br></li>
 <li>More captured sizes means a longer startup (since every size needs its own CUDA graph capture) but makes up for it in latency with more granular batching.<br></br></li>
 <li>Again, we can see a <strong>cold-start latency vs steady-state latency</strong> tradeoff.</li>
 </ul>
 <hr>
 <h3 id="latency-and-cpu-bound-nature-per-step">Latency and CPU-bound nature per-step</h3>
-<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" width="433" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" width="411" loading="lazy"></span></p>
 <div>
 <p>Results are from running LLama3.2-3B on Intel Xeon Platinum 8568Y CPU and H100 GPU. Red marks step 1</p>
 </div>
@@ -182,10 +182,9 @@
 <p>As the following graph shows, vLLM v0.9.0 had particularly high cold-start latency, which was substantially reduced (nearly <strong>2x</strong>) in the subsequent release (vLLM v0.10.0). <strong>We need another such leap in cold-start latency</strong> to keep pace with these evolving workloads and the shift towards serverless inference.</p>
 <hr>
 <p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-58-22-pm.png" alt="" width="609" loading="lazy"></span></p>
-<hr>
 
 </article>
-<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides</a></div>
+<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides<svg class="arrow" viewBox="0 0 20 16" aria-hidden="true"><path d="M2 8h15m-5-5 5 5-5 5"/></svg></a></div>
 <footer class="site-footer"><a href="../">← all posts</a></footer>
 </div>
 </div>
