@@ -165,7 +165,9 @@ function preprocess(src, post, ctx) {
     const words = opts.split(/\s+/).filter(Boolean);
     const size = words.find((w) => /^\d+(x\d+)?$/.test(w));
     const alt = words.filter((w) => w !== size).join(" ");
-    const width = size ? ` width="${size.split("x")[0]}"` : "";
+    // |450 or |450x300: inline style, as Obsidian's slide plugin does (a width attribute loses to the CSS)
+    const [w, h] = size ? size.split("x") : [];
+    const width = w ? ` style="width:${w}px${h ? `;height:${h}px` : ""}"` : "";
     return `<span class="internal-embed image-embed" alt="${escapeHtml(alt)}"><img src="${url}" alt="${escapeHtml(alt)}"${width} loading="lazy"></span>`;
   });
 
@@ -291,9 +293,46 @@ for (const [el, go] of [[prev, () => Reveal.prev()], [next, () => Reveal.next()]
 // Portrait phones: a 480px-wide canvas shaped like the screen, so text stays readable
 // (a 960px canvas squeezed into 390px would render 20px text at about 8px).
 const base = ${JSON.stringify(opts)};
-const size = () => innerWidth <= 700
-  ? { width: 480, height: Math.round(480 * innerHeight / innerWidth) }
-  : { width: base.width, height: base.height };
+const size = () => {
+  const dims = innerWidth <= 700
+    ? { width: 480, height: Math.round(480 * innerHeight / innerWidth) }
+    : { width: base.width, height: base.height };
+  document.documentElement.style.setProperty("--slide-h", dims.height + "px");
+  return dims;
+};
+// A slide taller than the canvas is tightened in two steps (less space between blocks, then
+// tighter lines); if it still does not fit, it scrolls vertically inside the slide. Fitted
+// again when slides change, the window resizes or an image finishes loading.
+const limit = () => Reveal.getConfig().height - 8;
+function fit(section) {
+  const box = section.querySelector(":scope > div[absolute]");
+  if (!box) return;
+  section.removeAttribute("data-fit");
+  box.removeAttribute("data-overflow");
+  box.removeAttribute("data-prevent-swipe");
+  if (!box.scrollHeight) return; // hidden slide, measured when it is shown
+  for (const level of [1, 2]) {
+    if (box.scrollHeight <= limit()) return;
+    section.dataset.fit = level;
+  }
+  if (box.scrollHeight <= limit()) return;
+  // still too tall: scroll. Reveal would otherwise treat a vertical drag as a slide swipe.
+  box.dataset.overflow = "";
+  box.setAttribute("data-prevent-swipe", "");
+  if (!box._scrollHint) {
+    box._scrollHint = true;
+    box.addEventListener("scroll", () => {
+      box.toggleAttribute("data-at-end", box.scrollTop + box.clientHeight >= box.scrollHeight - 2);
+    }, { passive: true });
+  }
+  box.toggleAttribute("data-at-end", box.scrollTop + box.clientHeight >= box.scrollHeight - 2);
+}
+const fitAll = () => document.querySelectorAll(".slides section").forEach(fit);
+document.addEventListener("load", (e) => { if (e.target.tagName === "IMG") fitAll(); }, true);
+Reveal.on("ready", fitAll);
+Reveal.on("slidechanged", fitAll);
+Reveal.on("resize", fitAll);
+
 Reveal.initialize(Object.assign({}, base, size(), { plugins: [RevealNotes] })).then(sync);
 addEventListener("resize", () => Reveal.configure(size()));
 Reveal.on("slidechanged", sync);

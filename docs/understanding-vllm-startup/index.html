@@ -38,7 +38,7 @@
 <p>Images adapted from the slides accompanying the same work at MLSys 2026 (Oral Presentation): ⁠<a href="https://mlsys.org/media/mlsys-2026/Slides/3784.pdf">Presentation Slides</a>.</p>
 <hr>
 <h3 id="the-6-step-startup-process">The 6 step startup process:</h3>
-<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-3-48-10-pm.png" alt="" width="619" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-3-48-10-pm.png" alt="" style="width:619px" loading="lazy"></span></p>
 <hr>
 <h3 id="tldr-per-step-parameter-dependence">TLDR;  per-step parameter dependence</h3>
 <table>
@@ -119,7 +119,7 @@
 <li><strong>Optimize (Graph Compilation):</strong> TorchInductor takes the FX graph, fuses ops and generates optimized GPU kernels.</li>
 <li><strong>Result:</strong> a compiled model with fewer launches per forward pass.</li>
 </ul>
-<p><span class="internal-embed image-embed" alt=""><img src="vllm-torch-compile.svg" alt="" width="760" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="vllm-torch-compile.svg" alt="" style="width:760px" loading="lazy"></span></p>
 <hr>
 <h3 id="model-architecture-affects-compilation-time">Model architecture affects compilation time</h3>
 <p>Compilation time (both Dynamo transformation, Python to FX, and graph compilation, FX to GPU kernels) depends on:</p>
@@ -170,7 +170,7 @@
 </ul>
 <hr>
 <h3 id="latency-and-cpu-bound-nature-per-step">Latency and CPU-bound nature per-step</h3>
-<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" width="411" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" style="width:411px" loading="lazy"></span></p>
 <div>
 <p>Results are from running LLama3.2-3B on Intel Xeon Platinum 8568Y CPU and H100 GPU. Red marks step 1</p>
 </div>
@@ -181,7 +181,7 @@
 <p>With rising adoption and increasingly agentic workloads, inference patterns are becoming more dynamic, driving a <strong>shift towards serverless</strong> deployments and on-demand scaling. In this environment, cold-start latency is becoming an increasingly important bottleneck.</p>
 <p>As the following graph shows, vLLM v0.9.0 had particularly high cold-start latency, which was substantially reduced (nearly <strong>2x</strong>) in the subsequent release (vLLM v0.10.0). <strong>We need another such leap in cold-start latency</strong> to keep pace with these evolving workloads and the shift towards serverless inference.</p>
 <hr>
-<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-58-22-pm.png" alt="" width="609" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-58-22-pm.png" alt="" style="width:609px" loading="lazy"></span></p>
 
 </article>
 <div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides<svg class="arrow" viewBox="0 0 20 16" aria-hidden="true"><path d="M2 8h15m-5-5 5 5-5 5"/></svg></a></div>

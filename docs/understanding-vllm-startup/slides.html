@@ -33,7 +33,7 @@
 <p>Images adapted from the slides accompanying the same work at MLSys 2026 (Oral Presentation): ⁠<a href="https://mlsys.org/media/mlsys-2026/Slides/3784.pdf">Presentation Slides</a>.</p>
 </div></section>
 <section><div absolute="true"><h3 id="the-6-step-startup-process">The 6 step startup process:</h3>
-<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-3-48-10-pm.png" alt="" width="619" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-3-48-10-pm.png" alt="" style="width:619px" loading="lazy"></span></p>
 </div></section>
 <section><div absolute="true"><h3 id="tldr-per-step-parameter-dependence">TLDR;  per-step parameter dependence</h3>
 <table>
@@ -114,7 +114,7 @@
 <li><strong>Optimize (Graph Compilation):</strong> TorchInductor takes the FX graph, fuses ops and generates optimized GPU kernels.</li>
 <li><strong>Result:</strong> a compiled model with fewer launches per forward pass.</li>
 </ul>
-<p><span class="internal-embed image-embed" alt=""><img src="vllm-torch-compile.svg" alt="" width="760" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="vllm-torch-compile.svg" alt="" style="width:760px" loading="lazy"></span></p>
 </div></section>
 <section><div absolute="true"><h3 id="model-architecture-affects-compilation-time">Model architecture affects compilation time</h3>
 <p>Compilation time (both Dynamo transformation, Python to FX, and graph compilation, FX to GPU kernels) depends on:</p>
@@ -165,7 +165,7 @@
 </ul>
 </div></section>
 <section><div absolute="true"><h3 id="latency-and-cpu-bound-nature-per-step">Latency and CPU-bound nature per-step</h3>
-<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" width="411" loading="lazy"></span></p>
+<p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" style="width:411px" loading="lazy"></span></p>
 <div>
 <p>Results are from running LLama3.2-3B on Intel Xeon Platinum 8568Y CPU and H100 GPU. Red marks step 1</p>
 </div>
@@ -176,7 +176,7 @@
 <p>With rising adoption and increasingly agentic workloads, inference patterns are becoming more dynamic, driving a <strong>shift towards serverless</strong> deployments and on-demand scaling. In this environment, cold-start latency is becoming an increasingly important bottleneck.</p>
 <p>As the following graph shows, vLLM v0.9.0 had particularly high cold-start latency, which was substantially reduced (nearly <strong>2x</strong>) in the subsequent release (vLLM v0.10.0). <strong>We need another such leap in cold-start latency</strong> to keep pace with these evolving workloads and the shift towards serverless inference.</p>
 </div></section>
-<section><div absolute="true"><p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-58-22-pm.png" alt="" width="609" loading="lazy"></span></p>
+<section><div absolute="true"><p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-58-22-pm.png" alt="" style="width:609px" loading="lazy"></span></p>
 </div></section>
 </div></div>
 <button class="nav-zone nav-prev" tabindex="-1" aria-label="Previous slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="M17 3 4 19l13 16"/></svg></button>
@@ -198,9 +198,46 @@ for (const [el, go] of [[prev, () => Reveal.prev()], [next, () => Reveal.next()]
 // Portrait phones: a 480px-wide canvas shaped like the screen, so text stays readable
 // (a 960px canvas squeezed into 390px would render 20px text at about 8px).
 const base = {"hash":true,"center":true,"transition":"slide","width":960,"height":700,"controls":false,"scrollActivationWidth":null};
-const size = () => innerWidth <= 700
-  ? { width: 480, height: Math.round(480 * innerHeight / innerWidth) }
-  : { width: base.width, height: base.height };
+const size = () => {
+  const dims = innerWidth <= 700
+    ? { width: 480, height: Math.round(480 * innerHeight / innerWidth) }
+    : { width: base.width, height: base.height };
+  document.documentElement.style.setProperty("--slide-h", dims.height + "px");
+  return dims;
+};
+// A slide taller than the canvas is tightened in two steps (less space between blocks, then
+// tighter lines); if it still does not fit, it scrolls vertically inside the slide. Fitted
+// again when slides change, the window resizes or an image finishes loading.
+const limit = () => Reveal.getConfig().height - 8;
+function fit(section) {
+  const box = section.querySelector(":scope > div[absolute]");
+  if (!box) return;
+  section.removeAttribute("data-fit");
+  box.removeAttribute("data-overflow");
+  box.removeAttribute("data-prevent-swipe");
+  if (!box.scrollHeight) return; // hidden slide, measured when it is shown
+  for (const level of [1, 2]) {
+    if (box.scrollHeight <= limit()) return;
+    section.dataset.fit = level;
+  }
+  if (box.scrollHeight <= limit()) return;
+  // still too tall: scroll. Reveal would otherwise treat a vertical drag as a slide swipe.
+  box.dataset.overflow = "";
+  box.setAttribute("data-prevent-swipe", "");
+  if (!box._scrollHint) {
+    box._scrollHint = true;
+    box.addEventListener("scroll", () => {
+      box.toggleAttribute("data-at-end", box.scrollTop + box.clientHeight >= box.scrollHeight - 2);
+    }, { passive: true });
+  }
+  box.toggleAttribute("data-at-end", box.scrollTop + box.clientHeight >= box.scrollHeight - 2);
+}
+const fitAll = () => document.querySelectorAll(".slides section").forEach(fit);
+document.addEventListener("load", (e) => { if (e.target.tagName === "IMG") fitAll(); }, true);
+Reveal.on("ready", fitAll);
+Reveal.on("slidechanged", fitAll);
+Reveal.on("resize", fitAll);
+
 Reveal.initialize(Object.assign({}, base, size(), { plugins: [RevealNotes] })).then(sync);
 addEventListener("resize", () => Reveal.configure(size()));
 Reveal.on("slidechanged", sync);
