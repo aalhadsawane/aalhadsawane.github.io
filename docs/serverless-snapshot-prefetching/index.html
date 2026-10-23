@@ -20,7 +20,7 @@
 <a class="profile-link" href="../profile/"><mark>profile</mark></a>
 <div class="markdown-preview-sizer">
 <header class="site-header"><a href="../">Aalhad Sawane</a></header>
-<p class="post-meta">13 Oct 2026 · <a href="slides.html">view as slides</a></p>
+<p class="post-meta">13 Oct 2026 · 21 min read · <a href="slides.html">view as slides</a></p>
 <article>
 <h1 id="serverless-snapshot-prefetching-from-first-principles-to-the-frontier">Serverless Snapshot Prefetching: From First Principles to the Frontier</h1>
 <blockquote>
@@ -53,18 +53,13 @@ Each level has different ways to tackle cold starts:</p>
 <p><em>note</em>: Firecracker and leading VMMs ditch PCIe completely since several PCIe buses in topology of emulated hardware means lots of enumeration which adds complexity to VMM's device state. A whole bunch of other reasons, worth a full-blown primer paper.</p>
 <hr>
 <ol start="4">
-<li>
-<p><code>EPT</code>: Extended page table, maps guest physical to host physical.</p>
-</li>
-<li>
-<p><code>VM exit / VM entry</code>: the CPU switching from the guest into KVM (exit) and back (entry).</p>
-</li>
-<li>
-<p><code>ioctl</code>: A standard system call to send control commands and configuration parameters to kernel drivers through a file descriptor.</p>
-</li>
-<li>
-<p><code>virtqueue</code>: a ring buffer in guest RAM that both the guest driver and the VMM read and write. The guest places requests on it, the VMM completes them and places replies back.</p>
-</li>
+<li><code>EPT</code>: Extended page table, maps guest physical to host physical.</li>
+<li><code>VM exit / VM entry</code>: the CPU switching from the guest into KVM (exit) and back (entry).</li>
+<li><code>ioctl</code>: A standard system call to send control commands and configuration parameters to kernel drivers through a file descriptor.</li>
+<li><code>virtqueue</code>: a ring buffer in guest RAM that both the guest driver and the VMM read and write. The guest places requests on it, the VMM completes them and places replies back.</li>
+</ol>
+<hr>
+<ol start="8">
 <li>
 <p><code>EPT fault</code>: the CPU exception raised when the guest accesses a guest physical address that the EPT (extended page tables) cannot translate. It causes a VM exit into KVM. There are two common causes:</p>
 <ol>

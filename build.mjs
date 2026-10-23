@@ -235,7 +235,7 @@ function postPage(post) {
 ${profileLink("../")}
 <div class="markdown-preview-sizer">
 ${siteHeader("../")}
-<p class="post-meta">${formatDate(post.date)} · <a href="slides.html">view as slides</a></p>
+<p class="post-meta">${formatDate(post.date)} · ${post.minutes} min read · <a href="slides.html">view as slides</a></p>
 <article>
 ${post.html}
 </article>
@@ -256,6 +256,7 @@ function slidesPage(post) {
     transition: post.data.transition || "slide",
     width: post.data.width || 960,
     height: post.data.height || 700,
+    controls: false, // replaced by the full-height side zones below
   };
   return `${head({
     title: `${post.title} · slides`,
@@ -266,10 +267,25 @@ function slidesPage(post) {
 <div class="reveal"><div class="slides">
 ${post.slides}
 </div></div>
+<button class="nav-zone nav-prev" tabindex="-1" aria-label="Previous slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="M17 3 4 19l13 16"/></svg></button>
+<button class="nav-zone nav-next" tabindex="-1" aria-label="Next slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="m5 3 13 16L5 35"/></svg></button>
 <a class="slides-back" href="./">← article</a>
 <script src="${REVEAL}/reveal.min.js"></script>
 <script src="${REVEAL}/plugin/notes/notes.min.js"></script>
-<script>Reveal.initialize(Object.assign(${JSON.stringify(opts)}, { plugins: [RevealNotes] }));</script>
+<script>
+const prev = document.querySelector(".nav-prev"), next = document.querySelector(".nav-next");
+const sync = () => {
+  prev.classList.toggle("at-end", Reveal.isFirstSlide());
+  next.classList.toggle("at-end", Reveal.isLastSlide());
+};
+// mousedown is cancelled so the buttons never take focus (Space would then advance twice)
+for (const [el, go] of [[prev, () => Reveal.prev()], [next, () => Reveal.next()]]) {
+  el.addEventListener("mousedown", (e) => e.preventDefault());
+  el.addEventListener("click", go);
+}
+Reveal.initialize(Object.assign(${JSON.stringify(opts)}, { plugins: [RevealNotes] })).then(sync);
+Reveal.on("slidechanged", sync);
+</script>
 </body>
 </html>
 `;
@@ -278,7 +294,7 @@ ${post.slides}
 function indexPage(posts) {
   const items = posts.map((p) => `<li class="post-item">
 <a class="post-link" href="${p.slug}/">${escapeHtml(p.title)}</a>
-<div class="post-meta">${formatDate(p.date)}</div>
+<div class="post-meta">${formatDate(p.date)} · ${p.minutes} min read</div>
 ${p.description ? `<p class="post-desc">${escapeHtml(p.description)}</p>` : ""}
 </li>`).join("\n");
   return `${head({
@@ -422,6 +438,11 @@ function build() {
     const articleSrc = splitOutsideFences(src, /^---\s*$/).map((s) => splitNotes(s)[0]).join("\n\n---\n\n");
     post.html = md.render(articleSrc);
     post.description = post.data.description || firstParagraph(post.html);
+    // reading time: ~230 words/minute, plus a few seconds per diagram. `readtime:` overrides.
+    const text = post.html.replace(/<[^>]+>/g, " ").replace(/&[#\w]+;/g, " ");
+    const words = (text.match(/\S+/g) || []).length;
+    const images = (post.html.match(/<img\b/g) || []).length;
+    post.minutes = Math.max(1, Math.round(Number(post.data.readtime) || words / 230 + images * 0.2));
 
     // Slides: --- separates horizontal slides, -- separates vertical ones
     post.slides = splitOutsideFences(src, /^---\s*$/).map((h) => {

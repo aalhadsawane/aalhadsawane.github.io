@@ -49,18 +49,13 @@ Each level has different ways to tackle cold starts:</p>
 <p><em>note</em>: Firecracker and leading VMMs ditch PCIe completely since several PCIe buses in topology of emulated hardware means lots of enumeration which adds complexity to VMM's device state. A whole bunch of other reasons, worth a full-blown primer paper.</p>
 </div></section>
 <section><div absolute="true"><ol start="4">
-<li>
-<p><code>EPT</code>: Extended page table, maps guest physical to host physical.</p>
-</li>
-<li>
-<p><code>VM exit / VM entry</code>: the CPU switching from the guest into KVM (exit) and back (entry).</p>
-</li>
-<li>
-<p><code>ioctl</code>: A standard system call to send control commands and configuration parameters to kernel drivers through a file descriptor.</p>
-</li>
-<li>
-<p><code>virtqueue</code>: a ring buffer in guest RAM that both the guest driver and the VMM read and write. The guest places requests on it, the VMM completes them and places replies back.</p>
-</li>
+<li><code>EPT</code>: Extended page table, maps guest physical to host physical.</li>
+<li><code>VM exit / VM entry</code>: the CPU switching from the guest into KVM (exit) and back (entry).</li>
+<li><code>ioctl</code>: A standard system call to send control commands and configuration parameters to kernel drivers through a file descriptor.</li>
+<li><code>virtqueue</code>: a ring buffer in guest RAM that both the guest driver and the VMM read and write. The guest places requests on it, the VMM completes them and places replies back.</li>
+</ol>
+</div></section>
+<section><div absolute="true"><ol start="8">
 <li>
 <p><code>EPT fault</code>: the CPU exception raised when the guest accesses a guest physical address that the EPT (extended page tables) cannot translate. It causes a VM exit into KVM. There are two common causes:</p>
 <ol>
@@ -605,9 +600,24 @@ Each level has different ways to tackle cold starts:</p>
 </div></section>
 <section><div absolute="true"></div></section>
 </div></div>
+<button class="nav-zone nav-prev" tabindex="-1" aria-label="Previous slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="M17 3 4 19l13 16"/></svg></button>
+<button class="nav-zone nav-next" tabindex="-1" aria-label="Next slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="m5 3 13 16L5 35"/></svg></button>
 <a class="slides-back" href="./">← article</a>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
-<script>Reveal.initialize(Object.assign({"hash":true,"center":false,"transition":"slide","width":960,"height":700}, { plugins: [RevealNotes] }));</script>
+<script>
+const prev = document.querySelector(".nav-prev"), next = document.querySelector(".nav-next");
+const sync = () => {
+  prev.classList.toggle("at-end", Reveal.isFirstSlide());
+  next.classList.toggle("at-end", Reveal.isLastSlide());
+};
+// mousedown is cancelled so the buttons never take focus (Space would then advance twice)
+for (const [el, go] of [[prev, () => Reveal.prev()], [next, () => Reveal.next()]]) {
+  el.addEventListener("mousedown", (e) => e.preventDefault());
+  el.addEventListener("click", go);
+}
+Reveal.initialize(Object.assign({"hash":true,"center":false,"transition":"slide","width":960,"height":700,"controls":false}, { plugins: [RevealNotes] })).then(sync);
+Reveal.on("slidechanged", sync);
+</script>
 </body>
 </html>
