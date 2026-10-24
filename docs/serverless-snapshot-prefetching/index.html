@@ -51,7 +51,7 @@ Each level has different ways to tackle cold starts:</p>
 <li><code>VMM</code>: Virtual Machine Monitor: The userspace component that manages a VM, allocates and <code>mmap</code>s its RAM, runs one host thread to execute a vCPU, and emulates its devices.</li>
 <li><code>virtio</code>: a standard for <em>paravirtual</em> devices that accelerates communication between the guest device and hypervisor. The guest driver and host device exchange buffers through virtqueues in shared memory and notify each other through a transport (PCIe emulation or MMIO).</li>
 </ol>
-<p><em>note</em>: Firecracker and leading VMMs ditch PCIe completely since several PCIe buses in topology of emulated hardware means lots of enumeration which adds complexity to VMM's device state. A whole bunch of other reasons, worth a full-blown primer paper.</p>
+<p><em>Note</em>: Firecracker and other leading VMMs ditch PCIe entirely. Why? PCIe introduces complexity through device enumeration across multiple buses and <em>dynamically</em> allocated Base Address Registers (BARs), which define device memory and I/O regions. Managing this topology increases the complexity of the VMM’s device state.</p>
 <hr>
 <ol start="4">
 <li><code>EPT</code>: Extended page table, maps guest physical to host physical.</li>
