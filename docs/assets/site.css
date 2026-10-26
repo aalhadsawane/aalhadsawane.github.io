@@ -69,3 +69,26 @@
   content: ""; display: block; width: 96px; height: 0;
   border-top: 1px dashed #808080; margin: 32px 0 31px;
 }
+
+/* Subscribe form (follow.it): same marker-yellow button as "View as slides". Rows are whole grid rows. */
+.subscribe-form { margin: 32px 0 0; }
+.subscribe-form label { display: block; line-height: 32px; font-weight: 700; }
+.subscribe-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 64px; }
+.subscribe-form input[type="email"] {
+  flex: 1 1 220px; min-width: 0; height: 46px; padding: 0 14px; box-sizing: border-box;
+  border: 1.5px solid #1f1f1f; border-radius: 8px; background: #fffefb; color: #1f1f1f;
+  font: inherit; font-size: 18px; outline: none;
+}
+.subscribe-form input[type="email"]::placeholder { color: #8a8a85; }
+.subscribe-form input[type="email"]:focus { background: #fff; box-shadow: 0 0 0 3px rgba(245, 214, 110, 0.75); }
+.subscribe-form button {
+  height: 46px; padding: 0 20px; box-sizing: border-box; cursor: pointer;
+  border: 1.5px solid #1f1f1f; border-radius: 8px; background: #f5d66e; color: #1f1f1f;
+  box-shadow: 3px 3px 0 #1f1f1f; font: inherit; font-size: 18px; font-weight: 700; line-height: 1;
+  transition: transform .1s, box-shadow .1s;
+}
+.subscribe-form button:hover { transform: translate(1px, 1px); box-shadow: 2px 2px 0 #1f1f1f; }
+.subscribe-form button:active { transform: translate(3px, 3px); box-shadow: 0 0 0 #1f1f1f; }
+.subscribe-form button:focus-visible { outline: 2px solid #1f1f1f; outline-offset: 3px; }
+.subscribe-note { color: #666; margin: 0; }
+.markdown-rendered .subscribe-note a { color: inherit; }

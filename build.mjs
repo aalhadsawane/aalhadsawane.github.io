@@ -227,9 +227,38 @@ ${extra}
 const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a></header>`;
 const RSS_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="13" r="1.6"/><path d="M2 7.5a6.5 6.5 0 0 1 6.5 6.5M2 2.5A11.5 11.5 0 0 1 13.5 14"/></svg>`;
 // "subscribe" goes to the follow.it page if one is configured, else straight to the feed
-const profileLink = (prefix) => `<nav class="top-links"><a class="subscribe-link" href="${config.subscribeUrl ? escapeHtml(config.subscribeUrl) : prefix + "feed.xml"}">${RSS_ICON}subscribe</a><a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a></nav>`;
+const profileLink = (prefix) => `<nav class="top-links"><a class="subscribe-link" href="${config.subscribeUrl ? escapeHtml(config.subscribeUrl) : config.followItAction ? prefix + "subscribe/" : prefix + "feed.xml"}">${RSS_ICON}subscribe</a><a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a></nav>`;
 
 const SLIDES_BUTTON = `<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides<svg class="arrow" viewBox="0 0 20 16" aria-hidden="true"><path d="M2 8h15m-5-5 5 5-5 5"/></svg></a></div>`;
+
+// follow.it sign-up form (their endpoint wants a POST with an `email` field)
+const subscribeForm = (id, label = "Get new posts by email") => config.followItAction ? `<form class="subscribe-form" action="${escapeHtml(config.followItAction)}" method="post" target="_blank">
+<label for="${id}">${label}</label>
+<div class="subscribe-row"><input id="${id}" type="email" name="email" required placeholder="you@example.com" autocomplete="email"><button type="submit">Subscribe</button></div>
+</form>` : "";
+
+function subscribePage() {
+  return `${head({
+    title: `Subscribe · ${config.title}`,
+    description: "Get each new post by email.",
+    css: ["../assets/base.css", "../assets/user.css", "../assets/site.css"],
+  })}
+<body>
+<div class="markdown-preview-view markdown-rendered">
+${profileLink("../")}
+<div class="markdown-preview-sizer">
+${siteHeader("../")}
+<h1>Subscribe</h1>
+<p>Each new post, by email. Nothing else.</p>
+${subscribeForm("email-page", "Your email address")}
+<p class="subscribe-note">Prefer a feed reader? Use the <a href="../feed.xml">RSS feed</a>.</p>
+<footer class="site-footer"><a href="../">← all posts</a></footer>
+</div>
+</div>
+</body>
+</html>
+`;
+}
 
 function postPage(post) {
   return `${head({
@@ -248,6 +277,7 @@ ${SLIDES_BUTTON}
 ${post.html}
 </article>
 ${SLIDES_BUTTON}
+${subscribeForm("email-post")}
 <footer class="site-footer"><a href="../">← all posts</a></footer>
 </div>
 </div>
@@ -591,6 +621,10 @@ function build() {
     fs.writeFileSync(path.join(OUT, "profile/index.html"), profilePage(profileFile));
   }
 
+  if (config.followItAction) {
+    fs.mkdirSync(path.join(OUT, "subscribe"), { recursive: true });
+    fs.writeFileSync(path.join(OUT, "subscribe/index.html"), subscribePage());
+  }
   writeFeed(posts);
 
   fs.writeFileSync(path.join(OUT, "index.html"), indexPage(posts));
