@@ -224,10 +224,8 @@ ${css.map((href) => `<link rel="stylesheet" href="${href}">`).join("\n")}
 ${extra}
 </head>`;
 
-const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a></header>`;
-const RSS_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="13" r="1.6"/><path d="M2 7.5a6.5 6.5 0 0 1 6.5 6.5M2 2.5A11.5 11.5 0 0 1 13.5 14"/></svg>`;
 // "subscribe" goes to the follow.it page if one is configured, else straight to the feed
-const profileLink = (prefix) => `<nav class="top-links"><a class="subscribe-link" href="${config.subscribeUrl ? escapeHtml(config.subscribeUrl) : config.followItAction ? prefix + "subscribe/" : prefix + "feed.xml"}">${RSS_ICON}subscribe</a><a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a></nav>`;
+const siteHeader = (prefix, home = false) => `<header class="site-header">${home ? "<span></span>" : `<a class="site-name" href="${prefix}">${escapeHtml(config.title)}</a>`}<nav class="top-links"><a class="subscribe-link" href="${config.subscribeUrl ? escapeHtml(config.subscribeUrl) : config.followItAction ? prefix + "subscribe/" : prefix + "feed.xml"}">subscribe</a><a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a></nav></header>`;
 
 const SLIDES_BUTTON = `<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides<svg class="arrow" viewBox="0 0 20 16" aria-hidden="true"><path d="M2 8h15m-5-5 5 5-5 5"/></svg></a></div>`;
 
@@ -245,7 +243,6 @@ function subscribePage() {
   })}
 <body>
 <div class="markdown-preview-view markdown-rendered">
-${profileLink("../")}
 <div class="markdown-preview-sizer">
 ${siteHeader("../")}
 <h1>Subscribe</h1>
@@ -268,7 +265,6 @@ function postPage(post) {
   })}
 <body>
 <div class="markdown-preview-view markdown-rendered">
-${profileLink("../")}
 <div class="markdown-preview-sizer">
 ${siteHeader("../")}
 <p class="post-meta">${formatDate(post.date)} · ${post.minutes} min read</p>
@@ -387,8 +383,8 @@ function indexPage(posts) {
   })}
 <body>
 <div class="markdown-preview-view markdown-rendered">
-${profileLink("")}
 <div class="markdown-preview-sizer">
+${siteHeader("", true)}
 <h1>${escapeHtml(config.title)}</h1>
 ${config.description ? `<p class="tagline">${escapeHtml(config.description)}</p>` : ""}
 <hr>
@@ -434,7 +430,6 @@ function profilePage(file) {
   })}
 <body>
 <div class="markdown-preview-view markdown-rendered">
-${profileLink("../")}
 <div class="markdown-preview-sizer">
 ${siteHeader("../")}
 ${hasBanner ? `<img class="profile-banner" src="../assets/header.jpg" alt="${escapeHtml(config.title)} giving a talk">` : ""}

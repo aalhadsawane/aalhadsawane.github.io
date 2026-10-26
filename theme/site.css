@@ -1,15 +1,13 @@
 /* Blog chrome: header, post meta, index list */
-.site-header { margin-bottom: 32px; }
-.top-links { position: absolute; top: 32px; right: 32px; display: flex; align-items: baseline; gap: 20px; }
+.site-header { display: flex; justify-content: space-between; align-items: baseline; height: 64px; margin: 0; }
 .markdown-rendered .top-links a { color: inherit; text-decoration: none; }
 .markdown-rendered .top-links a:hover { text-decoration: underline; }
-.markdown-rendered .subscribe-link { display: inline-flex; align-items: center; gap: 6px; color: #555 !important; }
-.subscribe-link svg { width: 13px; height: 13px; fill: currentColor; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
-.subscribe-link svg path { fill: none; }
+.top-links { display: flex; align-items: baseline; gap: 20px; margin-left: auto; }
+.markdown-rendered .subscribe-link { color: #555 !important; }
 .tagline { margin: 0; color: #444; }
 .profile-banner { display: block; width: 100%; aspect-ratio: 2 / 1; object-fit: cover; object-position: 50% 62%; border-radius: 8px; margin: 0 0 32px; }
 .site-header a, .site-footer a, .post-meta a { color: inherit; }
-.site-header a { font-weight: 700; text-decoration: none; }
+.site-header .site-name { font-weight: 700; text-decoration: none; }
 .post-meta { color: #666; margin: 0; }
 .site-footer { margin-top: 64px; }
 
@@ -19,7 +17,7 @@
 .post-item .post-meta { margin: 0; }
 
 @media (max-width: 600px) {
-  .top-links { right: 16px; gap: 14px; }
+  .top-links { gap: 16px; }
   .markdown-preview-view h1 { font-size: 40px !important; line-height: 64px !important; }
   .markdown-preview-view h2 { font-size: 34px !important; line-height: 64px !important; }
   .markdown-preview-view h3 { font-size: 28px !important; line-height: 32px !important; }
