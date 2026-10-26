@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+<title>Aalhad Sawane</title>
+<link>https://aalhadsawane.github.io/</link>
+<description>a personal blog</description>
+<language>en</language>
+<lastBuildDate>Fri, 23 Oct 2026 10:15:36 GMT</lastBuildDate>
+<atom:link href="https://aalhadsawane.github.io/feed.xml" rel="self" type="application/rss+xml"/>
+<item>
+<title>Investigating vLLM’s Startup Latency</title>
+<link>https://aalhadsawane.github.io/understanding-vllm-startup/</link>
+<guid isPermaLink="false">https://aalhadsawane.github.io/understanding-vllm-startup/</guid>
+<pubDate>Fri, 23 Oct 2026 10:15:36 GMT</pubDate>
+<description>Images adapted from the slides accompanying the same work at MLSys 2026 (Oral Presentation): ⁠Presentation Slides.</description>
+</item>
+<item>
+<title>Serverless Snapshot Prefetching: From First Principles to the Frontier</title>
+<link>https://aalhadsawane.github.io/serverless-snapshot-prefetching/</link>
+<guid isPermaLink="false">https://aalhadsawane.github.io/serverless-snapshot-prefetching/</guid>
+<pubDate>Tue, 13 Oct 2026 18:32:13 GMT</pubDate>
+<description>Function as a Service: The dominant serverless computing paradigm makes users upload their code as a stateless function. The FaaS provider (ex AWS Lambda, Azure Functions) provisions an isolated ex…</description>
+</item>
+</channel>
+</rss>

@@ -215,6 +215,7 @@ const head = ({ title, description, css, extra = "" }) => `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light only">
+${config.url ? `<link rel="alternate" type="application/rss+xml" title="${escapeHtml(config.title)}" href="${config.url}/feed.xml">` : ""}
 ${config.googleSiteVerification ? `<meta name="google-site-verification" content="${escapeHtml(config.googleSiteVerification)}">` : ""}
 <title>${escapeHtml(title)}</title>
 ${description ? `<meta name="description" content="${escapeHtml(description)}">\n<meta property="og:description" content="${escapeHtml(description)}">` : ""}
@@ -224,7 +225,9 @@ ${extra}
 </head>`;
 
 const siteHeader = (prefix) => `<header class="site-header"><a href="${prefix}">${escapeHtml(config.title)}</a></header>`;
-const profileLink = (prefix) => `<a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a>`;
+const RSS_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="13" r="1.6"/><path d="M2 7.5a6.5 6.5 0 0 1 6.5 6.5M2 2.5A11.5 11.5 0 0 1 13.5 14"/></svg>`;
+// "subscribe" goes to the follow.it page if one is configured, else straight to the feed
+const profileLink = (prefix) => `<nav class="top-links"><a class="subscribe-link" href="${config.subscribeUrl ? escapeHtml(config.subscribeUrl) : prefix + "feed.xml"}">${RSS_ICON}subscribe</a><a class="profile-link" href="${prefix}profile/"><mark>profile</mark></a></nav>`;
 
 const SLIDES_BUTTON = `<div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides<svg class="arrow" viewBox="0 0 20 16" aria-hidden="true"><path d="M2 8h15m-5-5 5 5-5 5"/></svg></a></div>`;
 
@@ -432,6 +435,55 @@ function firstParagraph(html) {
   return "";
 }
 
+// ---------- RSS ----------
+// A feed reader (and follow.it) sends a new item only when it sees a guid it has not seen before.
+// feed-state.json gives every post one permanent guid and publish time the first time it is
+// published, so editing a post later never produces a new item. It is only written by
+// publish.sh (PERSIST_FEED=1); builds for preview or testing leave it alone.
+function writeFeed(posts) {
+  if (!config.url) return;
+  const statePath = process.env.FEED_STATE || path.join(ROOT, "feed-state.json");
+  const existed = fs.existsSync(statePath);
+  const state = existed ? JSON.parse(fs.readFileSync(statePath, "utf8")) : { posts: {} };
+  const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+  let changed = false;
+  for (const p of posts) {
+    if (!state.posts[p.slug]) {
+      // first ever feed: keep the posts' own dates so nobody gets mailed about old posts
+      state.posts[p.slug] = { guid: `${config.url}/${p.slug}/`, published: existed ? now : p.date.toISOString().replace(/\.\d+Z$/, "Z") };
+      changed = true;
+    }
+  }
+  if (changed && process.env.PERSIST_FEED === "1") fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + "\n");
+
+  const items = posts
+    .map((p) => ({ p, e: state.posts[p.slug] }))
+    .sort((a, b) => new Date(b.e.published) - new Date(a.e.published))
+    .slice(0, 20);
+  const xml = (t) => escapeHtml(t).replace(/&#39;/g, "&apos;");
+  const lastBuild = items.length ? new Date(items[0].e.published).toUTCString() : new Date(0).toUTCString();
+  const out = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+<title>${xml(config.title)}</title>
+<link>${config.url}/</link>
+<description>${xml(config.description || config.title)}</description>
+<language>en</language>
+<lastBuildDate>${lastBuild}</lastBuildDate>
+<atom:link href="${config.url}/feed.xml" rel="self" type="application/rss+xml"/>
+${items.map(({ p, e }) => `<item>
+<title>${xml(p.title)}</title>
+<link>${config.url}/${p.slug}/</link>
+<guid isPermaLink="false">${xml(e.guid)}</guid>
+<pubDate>${new Date(e.published).toUTCString()}</pubDate>
+<description>${xml(p.description || p.title)}</description>
+</item>`).join("\n")}
+</channel>
+</rss>
+`;
+  fs.writeFileSync(path.join(OUT, "feed.xml"), out);
+}
+
 function build() {
   const posts = [];
   for (const file of vaultFiles) {
@@ -538,6 +590,8 @@ function build() {
     fs.mkdirSync(path.join(OUT, "profile"), { recursive: true });
     fs.writeFileSync(path.join(OUT, "profile/index.html"), profilePage(profileFile));
   }
+
+  writeFeed(posts);
 
   fs.writeFileSync(path.join(OUT, "index.html"), indexPage(posts));
   fs.writeFileSync(path.join(OUT, ".nojekyll"), "");

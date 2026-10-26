@@ -45,3 +45,18 @@ All visual styling lives in the vault CSS (`slides.css`, copied to `.obsidian/sn
 keep the two identical). This repo's `theme/*.css` only holds blog chrome (header, profile, index).
 The slide builder emits the same `<div absolute="true">` wrapper per slide that Advanced Slides does,
 so one CSS block styles both.
+
+## RSS / email (follow.it)
+
+The feed is `https://aalhadsawane.github.io/feed.xml`, rebuilt on every publish. A feed reader or
+follow.it only sends a new item when it sees a guid it has not seen before, so `feed-state.json`
+(committed) gives each post one permanent guid and publish time **the first time it is published**.
+Editing a post later changes nothing in the item list, so it never re-sends.
+
+- New post: `publish: true`, run `./publish.sh` → one new feed item → one email.
+- Edit / typo fix / re-publish: same guid, no new item, no email.
+- Unpublish then publish again: still the same guid, no email.
+- A new `slug:` (or renaming the note file) *is* a new post, so it would be sent again.
+- `./publish.sh --dry-run` never touches `feed-state.json`.
+- `subscribeUrl` in `site.config.json` (optional): once follow.it gives you a sign-up page, put its
+  URL there and the "subscribe" link points to it instead of the raw feed.
