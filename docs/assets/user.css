@@ -669,9 +669,9 @@ img[alt~="full"]:not(.internal-embed img) {
 }
 
 /* ==========================================================================
-   IMAGE SIZES   ![[img.svg|small]]  |medium  |large   (+ |wide and |full above)
+   IMAGE SIZES   ![[img.svg|small]]  |medium  |medium-big  |large  |big   (+ |wide and |full above)
    Proportions of the available width, so they mean the same in notes and slides:
-     small 45%     medium 65%     large 85%      (centered)
+     small 45%   medium 65%   medium-big 75%   large 85%   big 95%   (centered)
    A pixel size such as |450 (or |450x300) still works everywhere, and is clamped
    to the slide / column width so it can never overflow.
    Obsidian's slide plugin drops the keyword into the image's inline style
@@ -688,15 +688,22 @@ img[alt~="full"]:not(.internal-embed img) {
 .markdown-source-view .internal-embed[alt~="large"],
 .markdown-preview-view img[alt~="large"]:not(.internal-embed img) { width: 85%; }
 
-.markdown-preview-view .internal-embed:is([alt~="small"], [alt~="medium"], [alt~="large"]),
-.markdown-source-view .internal-embed:is([alt~="small"], [alt~="medium"], [alt~="large"]),
-.markdown-preview-view img:is([alt~="small"], [alt~="medium"], [alt~="large"]):not(.internal-embed img) {
+.markdown-preview-view .internal-embed[alt~="medium-big"],
+.markdown-source-view .internal-embed[alt~="medium-big"],
+.markdown-preview-view img[alt~="medium-big"]:not(.internal-embed img) { width: 75%; }
+.markdown-preview-view .internal-embed[alt~="big"],
+.markdown-source-view .internal-embed[alt~="big"],
+.markdown-preview-view img[alt~="big"]:not(.internal-embed img) { width: 95%; }
+
+.markdown-preview-view .internal-embed:is([alt~="small"], [alt~="medium"], [alt~="medium-big"], [alt~="large"], [alt~="big"]),
+.markdown-source-view .internal-embed:is([alt~="small"], [alt~="medium"], [alt~="medium-big"], [alt~="large"], [alt~="big"]),
+.markdown-preview-view img:is([alt~="small"], [alt~="medium"], [alt~="medium-big"], [alt~="large"], [alt~="big"]):not(.internal-embed img) {
   display: block;
   margin-left: auto;
   margin-right: auto;
 }
-.markdown-preview-view .internal-embed:is([alt~="small"], [alt~="medium"], [alt~="large"]) img,
-.markdown-source-view .internal-embed:is([alt~="small"], [alt~="medium"], [alt~="large"]) img {
+.markdown-preview-view .internal-embed:is([alt~="small"], [alt~="medium"], [alt~="medium-big"], [alt~="large"], [alt~="big"]) img,
+.markdown-source-view .internal-embed:is([alt~="small"], [alt~="medium"], [alt~="medium-big"], [alt~="large"], [alt~="big"]) img {
   display: block;
   width: 100%;
   max-width: none;
@@ -708,3 +715,5 @@ img[alt~="full"]:not(.internal-embed img) {
 .reveal .slides section img[alt~="small"],  .reveal .slides section img[style*="|small"]  { width: 45%; }
 .reveal .slides section img[alt~="medium"], .reveal .slides section img[style*="|medium"] { width: 65%; }
 .reveal .slides section img[alt~="large"],  .reveal .slides section img[style*="|large"]  { width: 85%; }
+.reveal .slides section img[alt~="medium-big"], .reveal .slides section img[style*="|medium-big"] { width: 75%; }
+.reveal .slides section img[alt~="big"],        .reveal .slides section img[style*="|big"]        { width: 95%; }
