@@ -10,6 +10,13 @@
 <meta name="description" content="Images adapted from the slides accompanying the same work at MLSys 2026 (Oral Presentation): ⁠Presentation Slides.">
 <meta property="og:description" content="Images adapted from the slides accompanying the same work at MLSys 2026 (Oral Presentation): ⁠Presentation Slides.">
 <meta property="og:title" content="Investigating vLLM’s Startup Latency · Aalhad Sawane">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://aalhadsawane.github.io/understanding-vllm-startup/">
+<meta property="og:image" content="https://aalhadsawane.github.io/understanding-vllm-startup/s/1.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://aalhadsawane.github.io/understanding-vllm-startup/s/1.jpg">
 <link rel="stylesheet" href="../assets/base.css">
 <link rel="stylesheet" href="../assets/hljs.css">
 <link rel="stylesheet" href="../assets/user.css">
@@ -22,12 +29,12 @@
 <header class="site-header"><a class="site-name" href="../">Aalhad Sawane</a><nav class="top-links"><a class="subscribe-link" href="../subscribe/">subscribe</a><a class="profile-link" href="../profile/"><mark>profile</mark></a></nav></header>
 <p class="post-meta">23 Oct 2026 · 5 min read</p>
 <div class="slides-cta-row"><a class="slides-cta" href="slides.html"><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>View as slides<svg class="arrow" viewBox="0 0 20 16" aria-hidden="true"><path d="M2 8h15m-5-5 5 5-5 5"/></svg></a></div>
-<article>
+<article data-slides="17">
 <h1 id="investigating-vllm-s-startup-latency">Investigating vLLM’s Startup Latency</h1>
 <blockquote>
 <p>Aalhad Sawane, Oct 26'</p>
 </blockquote>
-<hr>
+<hr class="slide-break" id="s-2">
 <p><mark>Sneak Peak</mark>:</p>
 <ul>
 <li>Break the vLLM startup process into 6 steps to identify key perf bottlenecks</li>
@@ -36,10 +43,10 @@
 </ul>
 <p>Based on the ⁠<a href="https://github.com/upb-cn/vllm-startup-profiler">vLLM Startup Profiler</a>.</p>
 <p>Images adapted from the slides accompanying the same work at MLSys 2026 (Oral Presentation): ⁠<a href="https://mlsys.org/media/mlsys-2026/Slides/3784.pdf">Presentation Slides</a>.</p>
-<hr>
+<hr class="slide-break" id="s-3">
 <h3 id="the-6-step-startup-process">The 6 step startup process:</h3>
 <p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-3-48-10-pm.png" alt="" style="width:619px" loading="lazy"></span></p>
-<hr>
+<hr class="slide-break" id="s-4">
 <h3 id="tldr-per-step-parameter-dependence">TLDR;  per-step parameter dependence</h3>
 <table>
 <thead>
@@ -76,7 +83,7 @@
 </tbody>
 </table>
 <p>Every step is explained with key takeaways below.</p>
-<hr>
+<hr class="slide-break" id="s-5">
 <h3 id="step-1-framework-bootstrap-step">Step 1: Framework Bootstrap Step</h3>
 <ol>
 <li><strong>Platform Detection</strong> — Identify the execution environment (CUDA or CPU).</li>
@@ -86,13 +93,13 @@
 </ol>
 <p><strong>Famework Bootstrap takes ~10* seconds regardless of model, only depends on vLLM implementation</strong></p>
 <p>*This step is CPU-bound, and was tested on Intel Xeon Platinum 8568Y+</p>
-<hr>
+<hr class="slide-break" id="s-6">
 <h3 id="step-2-3-tokenizer-and-model-loading">Step 2 &amp; 3: Tokenizer and Model Loading</h3>
 <ul>
 <li><strong>Tokenizer size</strong> directly affects latency of Tokenizer loading linearly, which is determined by <strong>vocabulary size</strong> of the tokenizer.</li>
 <li><strong>Model size</strong>, regardless of architecture, affects latency of model loading linearly.</li>
 </ul>
-<hr>
+<hr class="slide-break" id="s-7">
 <h3 id="step-4-torch-compilation">Step 4: Torch Compilation</h3>
 <p><strong>Problem:</strong> by default, PyTorch runs the model one operation at a time (eager execution). It is simple and easy to debug, but slow.</p>
 <ul>
@@ -100,7 +107,7 @@
 <li>Each one means Python dispatch plus a small GPU kernel launch.</li>
 <li>Many tiny kernels mean the GPU sits idle between launches.</li>
 </ul>
-<hr>
+<hr class="slide-break" id="s-8">
 <p><strong>Fix:</strong> compile the model.</p>
 <ul>
 <li>Capture the operations as a graph.</li>
@@ -112,7 +119,7 @@
 <li>This exposes the model's computation to the compiler.</li>
 <li>It is a warm-up, not a real request.</li>
 </ul>
-<hr>
+<hr class="slide-break" id="s-9">
 <h3 id="torchdynamo-and-torchinductor">TorchDynamo and TorchInductor</h3>
 <ul>
 <li><strong>Capture (Dynamo Transformation):</strong> TorchDynamo intercepts Python execution and records tensor ops as an FX graph (PyTorch's intermediate representation of the model).</li>
@@ -120,7 +127,7 @@
 <li><strong>Result:</strong> a compiled model with fewer launches per forward pass.</li>
 </ul>
 <p><span class="internal-embed image-embed" alt=""><img src="vllm-torch-compile.svg" alt="" style="width:760px" loading="lazy"></span></p>
-<hr>
+<hr class="slide-break" id="s-10">
 <h3 id="model-architecture-affects-compilation-time">Model architecture affects compilation time</h3>
 <p>Compilation time (both Dynamo transformation, Python to FX, and graph compilation, FX to GPU kernels) depends on:</p>
 <ul>
@@ -128,7 +135,7 @@
 <li>Layer complexity</li>
 </ul>
 <p>So compilation time follows the model's architecture, not just its parameter size.</p>
-<hr>
+<hr class="slide-break" id="s-11">
 <h3 id="things-to-know-about-torch-compilation-in-vllm">Things to know about torch compilation in vLLM:</h3>
 <ul>
 <li><strong>Split graph:</strong> vLLM compiles each layer in pieces and leaves attention out. Attention runs eagerly (op by op, without compilation), and everything between attention calls runs as compiled kernels.<br>
@@ -139,7 +146,7 @@
 </br></li>
 <li><strong>Cost:</strong> compilation is slow once (<strong>cold-start latency</strong>), but every later forward pass is faster, which thus makes up the cost in <strong>steady-state latency</strong> for most workloads. vLLM also caches the compiled result on disk, so later startups skip most of it.</li>
 </ul>
-<hr>
+<hr class="slide-break" id="s-12">
 <h3 id="step-5-kv-cache-profiling">Step 5: KV Cache Profiling</h3>
 <p><strong>Goal:</strong> find how much GPU memory can go to the KV cache (the stored attention state of past tokens, so they aren’t recomputed).</p>
 <ul>
@@ -151,7 +158,7 @@
 <li>Profiling time grows linearly with model size.</li>
 <li>MoE (mixture-of-experts) models deviate from this trend. (linear correlation does not hold)</li>
 </ul>
-<hr>
+<hr class="slide-break" id="s-13">
 <h3 id="step-6-cuda-graph-capturing">Step 6: CUDA graph capturing</h3>
 <p><strong>Goal:</strong> cut the cost of launching GPU kernels one by one.</p>
 <ul>
@@ -160,7 +167,7 @@
 </ul>
 <p><strong>Relation to model size:</strong> larger models take longer, because the dummy run is longer.</p>
 <p><strong>Relation to batch sizes:</strong> a CUDA graph is recorded for one fixed batch size, so every batch size needs its own capture.</p>
-<hr>
+<hr class="slide-break" id="s-14">
 <ul>
 <li>With <strong>continuous batching</strong>, requests join and leave the batch dynamically, so the batch size keeps changing.<br></br></li>
 <li>vLLM therefore captures graphs for a <strong>predefined set of batch sizes</strong>, for example 1, 2, 4, 8, 16, and so on.<br></br></li>
@@ -168,19 +175,19 @@
 <li>More captured sizes means a longer startup (since every size needs its own CUDA graph capture) but makes up for it in latency with more granular batching.<br></br></li>
 <li>Again, we can see a <strong>cold-start latency vs steady-state latency</strong> tradeoff.</li>
 </ul>
-<hr>
+<hr class="slide-break" id="s-15">
 <h3 id="latency-and-cpu-bound-nature-per-step">Latency and CPU-bound nature per-step</h3>
 <p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-48-31-pm.png" alt="" style="width:411px" loading="lazy"></span></p>
 <div>
 <p>Results are from running Llama3.2-3B on Intel Xeon Platinum 8568Y CPU and H100 GPU.</p>
 </div>
 <p><br></br></p>
-<hr>
+<hr class="slide-break" id="s-16">
 <h3 id="closing-thoughts">Closing Thoughts</h3>
 <p>While significant effort goes into optimizing vLLM’s steady-state performance, <strong>cold-start latency</strong> remains relatively underexplored.</p>
 <p>With rising adoption and increasingly agentic workloads, inference patterns are becoming more dynamic, driving a <strong>shift towards serverless</strong> deployments and on-demand scaling. In this environment, cold-start latency is becoming an increasingly important bottleneck.</p>
 <p>As the following graph shows, vLLM v0.9.0 had particularly high cold-start latency, which was substantially reduced (nearly <strong>2x</strong>) in the subsequent release (vLLM v0.10.0). <strong>We need another such leap in cold-start latency</strong> to keep pace with these evolving workloads and the shift towards serverless inference.</p>
-<hr>
+<hr class="slide-break" id="s-17">
 <p><span class="internal-embed image-embed" alt=""><img src="screenshot-2026-10-23-at-5-58-22-pm.png" alt="" style="width:609px" loading="lazy"></span></p>
 
 </article>

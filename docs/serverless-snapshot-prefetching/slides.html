@@ -10,6 +10,9 @@
 <meta name="description" content="Function as a Service: The dominant serverless computing paradigm makes users upload their code as a stateless function. The FaaS provider (ex AWS Lambda, Azure Functions) provisions an isolated ex…">
 <meta property="og:description" content="Function as a Service: The dominant serverless computing paradigm makes users upload their code as a stateless function. The FaaS provider (ex AWS Lambda, Azure Functions) provisions an isolated ex…">
 <meta property="og:title" content="Serverless Snapshot Prefetching: From First Principles to the Frontier · slides">
+
+
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/white.min.css">
 <link rel="stylesheet" href="../assets/hljs.css">
@@ -599,7 +602,6 @@ Each level has different ways to tackle cold starts:</p>
 <p>There is much more juice that can be squeezed out.</p>
 <p>The rise of AI agents is accelerating demand for serverless computing, as autonomous workloads require scalable, on-demand compute to execute tasks in isolated environments. Exciting years ahead in serverless.</p>
 </div></section>
-<section><div absolute="true"></div></section>
 </div></div>
 <button class="nav-zone nav-prev" tabindex="-1" aria-label="Previous slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="M17 3 4 19l13 16"/></svg></button>
 <button class="nav-zone nav-next" tabindex="-1" aria-label="Next slide"><svg viewBox="0 0 22 38" aria-hidden="true"><path d="m5 3 13 16L5 35"/></svg></button>
@@ -660,7 +662,10 @@ Reveal.on("ready", fitAll);
 Reveal.on("slidechanged", fitAll);
 Reveal.on("resize", fitAll);
 
-Reveal.initialize(Object.assign({}, base, size(), { plugins: [RevealNotes] })).then(sync);
+// ?og = rendering a slide image at build time: no controls, no animation
+const OG = new URLSearchParams(location.search).has("og");
+if (OG) document.documentElement.classList.add("og");
+Reveal.initialize(Object.assign({}, base, size(), OG ? { transition: "none", progress: false, hash: false } : {}, { plugins: [RevealNotes] })).then(sync);
 addEventListener("resize", () => Reveal.configure(size()));
 Reveal.on("slidechanged", sync);
 </script>

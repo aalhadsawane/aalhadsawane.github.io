@@ -11,6 +11,10 @@
     "serverlessllm": {
       "guid": "https://aalhadsawane.github.io/serverlessllm/",
       "published": "2026-10-29T13:36:04Z"
+    },
+    "decoding-serverlessllm": {
+      "guid": "https://aalhadsawane.github.io/decoding-serverlessllm/",
+      "published": "2026-10-29T14:29:36Z"
     }
   }
 }

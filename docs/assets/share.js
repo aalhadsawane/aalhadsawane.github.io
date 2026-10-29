@@ -1,5 +1,5 @@
-// "Share this passage": select text in a post -> Share -> a screenshot card of the passage
-// (drawn in the site's style, with credit) and a ready-made draft on X / LinkedIn.
+// "Share this passage": select text in a post -> Share -> the image of the slide it is in, and a
+// ready-made draft on X / LinkedIn that links to that slide (so the slide shows as the link card).
 // Everything runs in the reader's browser, so it works on static hosting.
 //
 // X and LinkedIn draft links cannot carry an image, so:
@@ -13,6 +13,8 @@
   const SITE = (document.querySelector(".site-name") || {}).textContent || "Aalhad Sawane";
   const TITLE = document.title.split(" · ")[0];
   const PAGE = location.origin + location.pathname;
+  const PAGEDIR = location.origin + location.pathname.replace(/[^/]*$/, "");
+  const HAS_SLIDE_PAGES = !!article.dataset.slides; // /<post>/s/<N>/ and s/<N>.jpg exist
   const SERIF = '"Playfair Display", Georgia, serif';
   const MONO = 'ui-monospace, "SF Mono", Menlo, monospace';
   const coarse = matchMedia("(pointer: coarse)");
@@ -48,6 +50,22 @@
     bar.style.left = left + scrollX + "px";
   }
 
+  // Which slide is the selection in? A slide is everything between two slide breaks (the --- lines
+  // of the note). The first slide starts at the top of the article and the last one has no break
+  // after it, so the end of the article closes it.
+  function slideOf(range) {
+    const breaks = [...article.querySelectorAll("hr.slide-break")];
+    let n = 1;
+    for (const b of breaks) {
+      if (b.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING) n++;
+      else break;
+    }
+    const r = document.createRange();
+    if (n > 1) r.setStartAfter(breaks[n - 2]); else r.setStart(article, 0);
+    if (n <= breaks.length) r.setEndBefore(breaks[n - 1]); else r.setEnd(article, article.childNodes.length);
+    return { n, frag: r.cloneContents() };
+  }
+
   function update() {
     if (dialogOpen || Date.now() < holdUntil) return;
     const sel = getSelection();
@@ -57,7 +75,8 @@
     const text = sel.toString().replace(/\s+/g, " ").trim();
     const frag = range.cloneContents();
     if (text.length < 12 && !frag.querySelector("img")) return hide();
-    state = { text, frag };
+    const slide = slideOf(range);
+    state = { text, n: slide.n, slideFrag: slide.frag };
     place(range);
   }
 
@@ -97,9 +116,11 @@
       const t = snap.text;
       return t.length <= n ? t : t.slice(0, n).replace(/\s+\S*$/, "") + "…";
     };
+    // the link goes to this slide's share page, so X and LinkedIn show the slide as the link card
+    const link = HAS_SLIDE_PAGES ? `${PAGEDIR}s/${snap.n}/` : PAGE;
     const xText = `“${excerpt(150)}”\n\n— ${SITE}`;
-    const inText = `“${excerpt(700)}”\n\n— ${SITE}, ${TITLE}\n${PAGE}`;
-    const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(xText)}&url=${encodeURIComponent(PAGE)}`;
+    const inText = `“${excerpt(700)}”\n\n— ${SITE}, ${TITLE}\n${link}`;
+    const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(xText)}&url=${encodeURIComponent(link)}`;
     const inUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(inText)}`;
 
     let blob = null, objUrl = "";
@@ -121,15 +142,7 @@
         return true;
       } catch { return false; }
     };
-    // the clipboard call and the new tab both start inside the click, so browsers allow them
-    const post = (url, label) => () => {
-      if (!blob) { window.open(url, "_blank", "noopener"); return; }
-      const copied = copyImage();
-      window.open(url, "_blank", "noopener");
-      copied.then((ok) => say(ok
-        ? `Image copied. Paste it into the ${label} draft (⌘V on Mac, Ctrl+V elsewhere).`
-        : "Couldn't copy the image. Use “Save image” and attach it to your post."));
-    };
+    const post = (url) => () => { window.open(url, "_blank", "noopener"); };
     const save = () => {
       const a = h("a");
       a.href = objUrl;
@@ -150,16 +163,16 @@
       buttons.length = 0;
       if (phoneShare()) {
         add("Share…", true, () => {
-          navigator.share({ files: [shareFile()], text: `“${excerpt(200)}” — ${SITE}`, url: PAGE }).catch(() => {});
+          navigator.share({ files: [shareFile()], text: `“${excerpt(200)}” — ${SITE}`, url: link }).catch(() => {});
         }, true);
         add("Save image", false, save, true);
         say("Pick X or LinkedIn in the share sheet. The image, quote and link go together.");
       } else {
-        add("Post on X", true, post(xUrl, "X"));
-        add("Post on LinkedIn", true, post(inUrl, "LinkedIn"));
+        add("Post on X", true, post(xUrl));
+        add("Post on LinkedIn", true, post(inUrl));
         add("Copy image", false, async () => say((await copyImage()) ? "Image copied." : "Couldn't copy the image. Use “Save image”."), true);
         add("Save image", false, save, true);
-        say("Opens a draft with the quote and a link. The screenshot is copied to your clipboard: paste it into the draft.");
+        say("The draft links to this slide, so X and LinkedIn show it as an image card. To put the image in the post itself, copy it and paste it into the draft.");
       }
       (buttons[0] || close).focus();
     };
@@ -177,7 +190,7 @@
     document.addEventListener("keydown", onKey);
     setup();
 
-    renderCard(snap.frag).then((b) => {
+    slideImage(snap).then((b) => {
       if (!dialogOpen) return;
       blob = b;
       objUrl = URL.createObjectURL(b);
@@ -191,6 +204,25 @@
       preview.textContent = "Couldn't make the image. You can still post the quote.";
       setup();
     });
+  }
+
+  // The image is the slide itself, rendered at build time (the same picture the link card shows).
+  // If it is not there (older build, or Chrome was missing when publishing) the slide is drawn here.
+  async function slideImage(snap) {
+    if (HAS_SLIDE_PAGES) {
+      try {
+        const res = await fetch(`${PAGEDIR}s/${snap.n}.jpg`);
+        if (res.ok) {
+          const bmp = await createImageBitmap(await res.blob());
+          const c = document.createElement("canvas");
+          c.width = bmp.width;
+          c.height = bmp.height;
+          c.getContext("2d").drawImage(bmp, 0, 0);
+          return await new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("no image"))), "image/png"));
+        }
+      } catch { /* fall through to drawing it */ }
+    }
+    return renderCard(snap.slideFrag);
   }
 
   // ---------- the card ----------

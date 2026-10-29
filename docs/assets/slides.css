@@ -80,3 +80,6 @@
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
 }
+
+/* ?og: rendering a slide to an image at build time */
+html.og .nav-zone, html.og .slides-back, html.og .progress { display: none !important; }

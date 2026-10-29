@@ -6,9 +6,10 @@
 //   node build.mjs [path/to/vault]
 
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import os from "node:os";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import matter from "gray-matter";
 import MarkdownIt from "markdown-it";
 import markPlugin from "markdown-it-mark";
@@ -209,7 +210,7 @@ md.core.ruler.push("heading_ids", (state) => {
 
 // ---------- templates ----------
 
-const head = ({ title, description, css, extra = "" }) => `<!doctype html>
+const head = ({ title, description, css, extra = "", image, url, type }) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -220,6 +221,13 @@ ${config.googleSiteVerification ? `<meta name="google-site-verification" content
 <title>${escapeHtml(title)}</title>
 ${description ? `<meta name="description" content="${escapeHtml(description)}">\n<meta property="og:description" content="${escapeHtml(description)}">` : ""}
 <meta property="og:title" content="${escapeHtml(title)}">
+${type ? `<meta property="og:type" content="${type}">` : ""}
+${url ? `<meta property="og:url" content="${escapeHtml(url)}">` : ""}
+${image ? `<meta property="og:image" content="${escapeHtml(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${escapeHtml(image)}">` : ""}
 ${css.map((href) => `<link rel="stylesheet" href="${href}">`).join("\n")}
 ${extra}
 </head>`;
@@ -262,6 +270,9 @@ function postPage(post) {
     title: `${post.title} · ${config.title}`,
     description: post.description,
     css: ["../assets/base.css", "../assets/hljs.css", "../assets/user.css", "../assets/site.css"],
+    image: post.ogImage,
+    url: config.url ? `${config.url}/${post.slug}/` : undefined,
+    type: "article",
     extra: `<script src="../assets/share.js" defer></script>`,
   })}
 <body>
@@ -270,7 +281,7 @@ function postPage(post) {
 ${siteHeader("../")}
 <p class="post-meta">${formatDate(post.date)} · ${post.minutes} min read</p>
 ${SLIDES_BUTTON}
-<article>
+<article${config.url ? ` data-slides="${post.nSlides}"` : ""}>
 ${post.html}
 </article>
 ${SLIDES_BUTTON}
@@ -363,7 +374,10 @@ Reveal.on("ready", fitAll);
 Reveal.on("slidechanged", fitAll);
 Reveal.on("resize", fitAll);
 
-Reveal.initialize(Object.assign({}, base, size(), { plugins: [RevealNotes] })).then(sync);
+// ?og = rendering a slide image at build time: no controls, no animation
+const OG = new URLSearchParams(location.search).has("og");
+if (OG) document.documentElement.classList.add("og");
+Reveal.initialize(Object.assign({}, base, size(), OG ? { transition: "none", progress: false, hash: false } : {}, { plugins: [RevealNotes] })).then(sync);
 addEventListener("resize", () => Reveal.configure(size()));
 Reveal.on("slidechanged", sync);
 </script>
@@ -461,6 +475,89 @@ function firstParagraph(html) {
   return "";
 }
 
+// ---------- slide images (link-preview cards) ----------
+// Every slide is rendered once to a 1200x630 image with headless Chrome (puppeteer-core drives the
+// Chrome that is already on this Mac) and cached in .og-cache by a hash of the slide's content and
+// the diagrams it shows, so only new or changed slides are rendered. Each slide gets a share page,
+// /<post>/s/<N>/, whose preview image is that slide. X and LinkedIn build their link cards from it.
+// The cache ignores CSS changes (re-rendering everything would rewrite every image in git);
+// refresh them all with OG_REBUILD=1 ./publish.sh.
+const OG_W = 1200, OG_H = 630, OG_VER = 1;
+const sha = (x) => crypto.createHash("sha1").update(x).digest("hex").slice(0, 16);
+
+async function renderOg(posts) {
+  if (!config.url || config.ogImages === false) return;
+  const cacheDir = path.join(ROOT, ".og-cache");
+  fs.mkdirSync(cacheDir, { recursive: true });
+  const todo = [];
+  for (const post of posts) {
+    fs.mkdirSync(path.join(post.dir, "s"), { recursive: true });
+    post.og = post.slideList.map((html, i) => {
+      const used = [...html.matchAll(/\bsrc="([^"#?]+)"/g)].map((m) => m[1]).filter((n) => !/^(https?:|data:)/.test(n))
+        .map((n) => { try { return sha(fs.readFileSync(path.join(post.dir, n))); } catch { return n; } });
+      const key = sha([OG_VER, OG_W, OG_H, post.data.theme || "", html, ...used].join("\0"));
+      const o = { n: i + 1, file: path.join(cacheDir, key + ".jpg") };
+      if (process.env.OG_REBUILD === "1" || !fs.existsSync(o.file)) todo.push({ post, ...o });
+      return o;
+    });
+  }
+  if (todo.length) await screenshotSlides(todo);
+  for (const post of posts) {
+    let ok = 0;
+    for (const o of post.og) if (fs.existsSync(o.file)) { fs.copyFileSync(o.file, path.join(post.dir, "s", `${o.n}.jpg`)); ok++; }
+    if (ok === post.og.length) post.ogImage = `${config.url}/${post.slug}/s/1.jpg`;
+    else console.warn(`! ${post.name}: ${post.og.length - ok} slide image(s) missing, link cards will have no picture`);
+  }
+}
+
+async function screenshotSlides(todo) {
+  const chrome = process.env.CHROME_PATH || config.chrome ||
+    ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome", "/usr/bin/chromium"].find((p) => fs.existsSync(p));
+  let puppeteer;
+  try { puppeteer = (await import("puppeteer-core")).default; } catch { console.warn("! puppeteer-core is not installed (npm install): skipping slide images"); return; }
+  if (!chrome) { console.warn("! Chrome not found (set CHROME_PATH or chrome in site.config.json): skipping slide images"); return; }
+  console.log(`Rendering ${todo.length} slide image(s)…`);
+  const browser = await puppeteer.launch({ executablePath: chrome, headless: true, defaultViewport: { width: OG_W, height: OG_H } });
+  try {
+    const bySlug = new Map();
+    for (const t of todo) bySlug.set(t.post.slug, [...(bySlug.get(t.post.slug) || []), t]);
+    for (const [slug, items] of bySlug) {
+      const page = await browser.newPage();
+      await page.goto(pathToFileURL(path.join(OUT, slug, "slides.html")).href + "?og", { waitUntil: "networkidle0", timeout: 90000 });
+      await page.waitForFunction(() => window.Reveal && Reveal.isReady && Reveal.isReady(), { timeout: 30000 });
+      for (const it of items) {
+        await page.evaluate((n) => Reveal.slide(n - 1, 0), it.n);
+        await page.evaluate(() => document.fonts.ready);
+        await page.waitForFunction(() => [...document.querySelectorAll(".slides section.present img")].every((i) => i.complete && i.naturalWidth > 0), { timeout: 15000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 300)); // the slide fitting script runs on change
+        await page.screenshot({ path: it.file, type: "jpeg", quality: 82 });
+      }
+      await page.close();
+    }
+  } finally { await browser.close(); }
+}
+
+// /<post>/s/<N>/: only for link previews. People are sent straight to that slide in the article.
+function sharePage(post, n, slideHtml) {
+  const text = slideHtml.replace(/<aside[\s\S]*?<\/aside>/g, " ").replace(/<[^>]+>/g, " ").replace(/&[#\w]+;/g, " ").replace(/\s+/g, " ").trim();
+  const desc = text.length > 200 ? text.slice(0, 197).trimEnd() + "…" : text || post.description;
+  const back = n > 1 ? `../../#s-${n}` : "../../";
+  return `${head({
+    title: `${post.title} · ${config.title}`,
+    description: desc,
+    css: [],
+    image: post.ogImage ? `${config.url}/${post.slug}/s/${n}.jpg` : undefined,
+    url: `${config.url}/${post.slug}/s/${n}/`,
+    type: "article",
+  })}
+<body>
+<script>location.replace(${JSON.stringify(back)});</script>
+<noscript><p><a href="${back}">Read “${escapeHtml(post.title)}”</a></p></noscript>
+</body>
+</html>
+`;
+}
+
 // ---------- RSS ----------
 // A feed reader (and follow.it) sends a new item only when it sees a guid it has not seen before.
 // feed-state.json gives every post one permanent guid and publish time the first time it is
@@ -510,7 +607,7 @@ ${items.map(({ p, e }) => `<item>
   fs.writeFileSync(path.join(OUT, "feed.xml"), out);
 }
 
-function build() {
+async function build() {
   const posts = [];
   for (const file of vaultFiles) {
     if (!file.endsWith(".md") || file.endsWith(".excalidraw.md")) continue;
@@ -563,7 +660,14 @@ function build() {
     const src = preprocess(post.body, post, ctx);
 
     // Article: Advanced Slides notes are dropped, slide separators stay as <hr>
-    const articleSrc = splitOutsideFences(src, /^---\s*$/).map((s) => splitNotes(s)[0]).join("\n\n---\n\n");
+    // each slide break is an <hr class="slide-break" id="s-N"> (N = the slide that follows it); the end of
+    // the article closes the last slide. The share feature finds a selection's slide from these.
+    // a note may end with a --- line; that would be an empty last slide, so trailing blanks are dropped
+    const rawSlides = splitOutsideFences(src, /^---\s*$/);
+    while (rawSlides.length > 1 && !/\S/.test(rawSlides[rawSlides.length - 1])) rawSlides.pop();
+    const parts = rawSlides.map((s) => splitNotes(s)[0]);
+    post.nSlides = parts.length;
+    const articleSrc = parts.map((s, i) => (i ? `\n\n<hr class="slide-break" id="s-${i + 1}">\n\n` : "") + s).join("");
     post.html = md.render(articleSrc);
     post.description = post.data.description || firstParagraph(post.html);
     // reading time: ~230 words/minute, plus a few seconds per diagram. `readtime:` overrides.
@@ -573,15 +677,16 @@ function build() {
     post.minutes = Math.max(1, Math.round(Number(post.data.readtime) || words / 230 + images * 0.2));
 
     // Slides: --- separates horizontal slides, -- separates vertical ones
-    post.slides = splitOutsideFences(src, /^---\s*$/).map((h) => {
+    post.slideList = rawSlides.map((h) => {
       const verticals = splitOutsideFences(h, /^--\s*$/).map((v) => {
         const [content, notes] = splitNotes(v);
         return `<section><div absolute="true">${md.render(content)}</div>${notes.trim() ? `<aside class="notes">${md.render(notes)}</aside>` : ""}</section>`;
       });
       return verticals.length > 1 ? `<section>${verticals.join("\n")}</section>` : verticals[0];
-    }).join("\n");
+    });
+    post.slides = post.slideList.join("\n");
+    post.dir = dir;
 
-    fs.writeFileSync(path.join(dir, "index.html"), postPage(post));
     fs.writeFileSync(path.join(dir, "slides.html"), slidesPage(post));
     console.log(`✓ ${post.title}  →  /${post.slug}/  (${copied.size} files)`);
   }
@@ -609,6 +714,16 @@ function build() {
   for (const f of ["base.css", "site.css", "slides.css", "share.js"]) fs.copyFileSync(path.join(ROOT, "theme", f), path.join(OUT, "assets", f));
   fs.copyFileSync(path.join(ROOT, "node_modules/highlight.js/styles/github.min.css"), path.join(OUT, "assets/hljs.css"));
 
+  await renderOg(posts);
+  for (const post of posts) {
+    fs.writeFileSync(path.join(post.dir, "index.html"), postPage(post));
+    if (config.url) post.slideList.forEach((html, i) => {
+      const d = path.join(post.dir, "s", String(i + 1));
+      fs.mkdirSync(d, { recursive: true });
+      fs.writeFileSync(path.join(d, "index.html"), sharePage(post, i + 1, html));
+    });
+  }
+
   const header = path.join(ROOT, "theme/header.jpg");
   if (fs.existsSync(header)) fs.copyFileSync(header, path.join(OUT, "assets/header.jpg"));
   const profileFile = path.join(ROOT, "profile.md");
@@ -628,4 +743,4 @@ function build() {
   console.log(`\nBuilt ${posts.length} post(s) into ${path.relative(process.cwd(), OUT) || OUT}`);
 }
 
-build();
+await build();

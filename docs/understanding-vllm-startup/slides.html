@@ -10,6 +10,9 @@
 <meta name="description" content="Images adapted from the slides accompanying the same work at MLSys 2026 (Oral Presentation): ⁠Presentation Slides.">
 <meta property="og:description" content="Images adapted from the slides accompanying the same work at MLSys 2026 (Oral Presentation): ⁠Presentation Slides.">
 <meta property="og:title" content="Investigating vLLM’s Startup Latency · slides">
+
+
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/white.min.css">
 <link rel="stylesheet" href="../assets/hljs.css">
@@ -239,7 +242,10 @@ Reveal.on("ready", fitAll);
 Reveal.on("slidechanged", fitAll);
 Reveal.on("resize", fitAll);
 
-Reveal.initialize(Object.assign({}, base, size(), { plugins: [RevealNotes] })).then(sync);
+// ?og = rendering a slide image at build time: no controls, no animation
+const OG = new URLSearchParams(location.search).has("og");
+if (OG) document.documentElement.classList.add("og");
+Reveal.initialize(Object.assign({}, base, size(), OG ? { transition: "none", progress: false, hash: false } : {}, { plugins: [RevealNotes] })).then(sync);
 addEventListener("resize", () => Reveal.configure(size()));
 Reveal.on("slidechanged", sync);
 </script>
