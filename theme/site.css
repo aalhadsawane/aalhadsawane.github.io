@@ -90,3 +90,43 @@
 .subscribe-form button:focus-visible { outline: 2px solid #1f1f1f; outline-offset: 3px; }
 .subscribe-note { color: #666; margin: 0; }
 .markdown-rendered .subscribe-note a { color: inherit; }
+
+/* Share this passage: a small floating button on selection, and a dialog with the card preview.
+   Both live on <body>, so fonts are set here. */
+.share-bar {
+  position: absolute; z-index: 50; display: none; height: 36px; padding: 0 14px; box-sizing: border-box;
+  border: 1.5px solid #1f1f1f; border-radius: 8px; background: #f5d66e; color: #1f1f1f;
+  box-shadow: 2px 2px 0 #1f1f1f; cursor: pointer;
+  font: 700 16px/1 "Playfair Display", Georgia, serif;
+}
+.share-bar.on { display: block; }
+.share-bar:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #1f1f1f; }
+
+.share-backdrop {
+  position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: rgba(251, 251, 249, 0.82);
+}
+.share-dialog {
+  position: relative; width: 100%; max-width: 560px; max-height: calc(100vh - 32px); overflow: auto;
+  padding: 20px; box-sizing: border-box; background: #fbfbf9; color: #1f1f1f;
+  border: 1.5px solid #1f1f1f; border-radius: 8px; box-shadow: 4px 4px 0 #1f1f1f;
+  font: 16px/24px "Playfair Display", Georgia, serif;
+}
+.share-title { margin: 0 0 14px; font-size: 20px; line-height: 28px; font-weight: 700; }
+.share-close {
+  position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: 0; background: none;
+  font: 28px/1 Georgia, serif; color: #555; cursor: pointer;
+}
+.share-preview { min-height: 64px; display: flex; align-items: center; justify-content: center; color: #666; }
+.share-preview img { display: block; max-width: 100%; max-height: 42vh; border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 6px; }
+.share-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.share-btn {
+  height: 40px; padding: 0 16px; box-sizing: border-box; cursor: pointer;
+  border: 1.5px solid #1f1f1f; border-radius: 8px; background: #fbfbf9; color: #1f1f1f;
+  font: 700 16px/1 "Playfair Display", Georgia, serif;
+}
+.share-btn.primary { background: #f5d66e; box-shadow: 2px 2px 0 #1f1f1f; }
+.share-btn.primary:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #1f1f1f; }
+.share-btn:disabled { opacity: 0.45; cursor: default; }
+.share-btn:focus-visible, .share-close:focus-visible, .share-bar:focus-visible { outline: 2px solid #1f1f1f; outline-offset: 3px; }
+.share-hint { margin: 14px 0 0; font-size: 15px; line-height: 22px; color: #555; }

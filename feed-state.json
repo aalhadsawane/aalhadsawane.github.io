@@ -7,6 +7,10 @@
     "serverless-snapshot-prefetching": {
       "guid": "https://aalhadsawane.github.io/serverless-snapshot-prefetching/",
       "published": "2026-10-13T18:32:13Z"
+    },
+    "serverlessllm": {
+      "guid": "https://aalhadsawane.github.io/serverlessllm/",
+      "published": "2026-10-29T13:36:04Z"
     }
   }
 }

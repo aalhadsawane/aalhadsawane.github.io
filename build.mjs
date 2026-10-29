@@ -262,6 +262,7 @@ function postPage(post) {
     title: `${post.title} · ${config.title}`,
     description: post.description,
     css: ["../assets/base.css", "../assets/hljs.css", "../assets/user.css", "../assets/site.css"],
+    extra: `<script src="../assets/share.js" defer></script>`,
   })}
 <body>
 <div class="markdown-preview-view markdown-rendered">
@@ -605,7 +606,7 @@ function build() {
   const rest = userCss.map((c) => c.replace(/@import\s+(?:url\([^)]*\)|"[^"]*"|'[^']*')[^;]*;/g, (m) => (imports.push(m), ""))).join("\n\n");
   fs.writeFileSync(path.join(OUT, "assets/user.css"), [...new Set(imports)].join("\n") + "\n" + rest);
 
-  for (const f of ["base.css", "site.css", "slides.css"]) fs.copyFileSync(path.join(ROOT, "theme", f), path.join(OUT, "assets", f));
+  for (const f of ["base.css", "site.css", "slides.css", "share.js"]) fs.copyFileSync(path.join(ROOT, "theme", f), path.join(OUT, "assets", f));
   fs.copyFileSync(path.join(ROOT, "node_modules/highlight.js/styles/github.min.css"), path.join(OUT, "assets/hljs.css"));
 
   const header = path.join(ROOT, "theme/header.jpg");
